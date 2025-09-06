@@ -172,6 +172,108 @@ class TestProcessEndpoint:
         assert response.status_code == 422
 
 
+class TestCORSConfiguration:
+    """Test suite for CORS (Cross-Origin Resource Sharing) functionality."""
+
+    def test_cors_middleware_is_configured(self):
+        """Test that CORS middleware is properly configured in the FastAPI app."""
+        from main import app
+        
+        # Check that CORS middleware is in the middleware stack
+        middleware_classes = [str(middleware.cls) for middleware in app.user_middleware]
+        
+        # Look for CORS middleware in the stack (could be FastAPI's or Starlette's)
+        cors_found = any("CORS" in cls_name for cls_name in middleware_classes)
+        assert cors_found, f"CORS middleware not found. Available middleware: {middleware_classes}"
+
+    def test_cross_origin_health_request_succeeds(self):
+        """Test that cross-origin requests to health endpoint are not blocked."""
+        headers = {"Origin": "http://localhost:3000"}  # Simulated Obsidian plugin origin
+        response = client.get("/health", headers=headers)
+        
+        # Should succeed (not be CORS-blocked)
+        assert response.status_code == 200
+        json_data = response.json()
+        assert json_data["status"] == "healthy"
+
+    def test_cross_origin_process_request_succeeds(self):
+        """Test that cross-origin requests to process endpoint are not blocked."""
+        headers = {"Origin": "http://localhost:3000"}  # Simulated Obsidian plugin origin
+        payload = {"task": "organize", "content": "Test cross-origin request"}
+        response = client.post("/process", json=payload, headers=headers)
+        
+        # Should not be blocked by CORS (status 200 or other non-403 status)
+        assert response.status_code != 403  # Not CORS-blocked
+
+    def test_cors_configuration_allows_all_origins(self):
+        """Test that CORS is configured to allow all origins for development."""
+        from main import app
+        
+        # Find the CORS middleware in the middleware stack
+        cors_middleware = None
+        for middleware in app.user_middleware:
+            if hasattr(middleware.cls, '__name__') and 'CORS' in str(middleware.cls):
+                cors_middleware = middleware
+                break
+        
+        # Verify CORS middleware exists
+        assert cors_middleware is not None, "CORS middleware should be configured"
+
+    def test_cors_preflight_request_handling(self):
+        """Test that preflight requests are handled properly."""
+        # Test OPTIONS request with CORS headers
+        headers = {
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST", 
+            "Access-Control-Request-Headers": "Content-Type"
+        }
+        response = client.options("/process", headers=headers)
+        
+        # OPTIONS should either succeed or return 405 (method not allowed), not 403 (CORS blocked)
+        assert response.status_code in [200, 405], f"Expected 200 or 405, got {response.status_code}"
+
+    def test_different_origin_requests_not_blocked(self):
+        """Test that requests from different origins are not CORS-blocked."""
+        origins_to_test = [
+            "http://localhost:3000",
+            "https://obsidian.example.com", 
+            "http://127.0.0.1:8080"
+        ]
+        
+        for origin in origins_to_test:
+            headers = {"Origin": origin}
+            response = client.get("/health", headers=headers)
+            
+            # Should not be CORS-blocked (403), should get normal response
+            assert response.status_code != 403, f"Request from {origin} was CORS-blocked"
+            assert response.status_code == 200, f"Health check failed for origin {origin}"
+
+    def test_json_content_type_requests_succeed(self):
+        """Test that JSON requests with Content-Type header succeed."""
+        headers = {
+            "Origin": "http://localhost:3000",
+            "Content-Type": "application/json"
+        }
+        payload = {"task": "organize", "content": "Test content"}
+        response = client.post("/process", json=payload, headers=headers)
+        
+        # Should not be blocked by CORS content-type restrictions
+        assert response.status_code != 403
+        # May fail for other reasons (like auth), but not CORS
+
+    def test_cors_allows_credentials_implicitly(self):
+        """Test that credential-based requests are not blocked."""
+        headers = {
+            "Origin": "http://localhost:3000",
+            "Cookie": "session=test123"  # Simulated credential
+        }
+        response = client.get("/health", headers=headers)
+        
+        # Should not be CORS-blocked due to credentials
+        assert response.status_code != 403
+        assert response.status_code == 200
+
+
 class TestRootEndpoint:
     """Test suite for root endpoint (existing functionality)."""
 

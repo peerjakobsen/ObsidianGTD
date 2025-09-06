@@ -9,7 +9,7 @@
 
 - [ ] Basic Obsidian plugin scaffold with settings panel `S`
 - [x] FastAPI backend service with health check endpoint `S`
-- [ ] AWS Bedrock integration with Claude API `M`
+- [x] AWS Bedrock integration with Claude API `M`
 - [ ] Text selection to task conversion command `M`
 - [ ] Tasks plugin compatible output format `M`
 - [ ] Context tag detection (computer, phone, errands) `S`
