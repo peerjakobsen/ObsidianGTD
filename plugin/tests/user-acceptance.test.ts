@@ -43,6 +43,9 @@ describe('User Acceptance Tests - GTD Clarification Workflows', () => {
     // Setup plugin
     plugin = new ObsidianGTDPlugin(mockApp, { id: 'obsidian-gtd', name: 'GTD Assistant', version: '1.0.0' });
     
+    // Explicitly set the app property to ensure it's available
+    (plugin as any).app = mockApp;
+    
     // Mock plugin methods to prevent actual initialization
     plugin.addCommand = jest.fn();
     plugin.addRibbonIcon = jest.fn().mockReturnValue({ addClass: jest.fn() });

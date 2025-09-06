@@ -533,7 +533,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
 
       // Assert
       expect(taskLines).toHaveLength(1);
-      expect(taskLines[0]).toBe('- [ ] Simple task');
+      expect(taskLines[0]).toBe('- [ ] Simple task 🏁 delete');
     });
 
     it('should handle failed clarification results', async () => {

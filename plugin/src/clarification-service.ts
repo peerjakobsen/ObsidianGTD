@@ -388,6 +388,9 @@ export class GTDClarificationService {
         }
       }
 
+      // Add completion status (for tasks that should be marked as done/deleted)
+      taskLine += ' 🏁 delete';
+
       return taskLine;
     });
   }

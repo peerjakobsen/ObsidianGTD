@@ -15,20 +15,6 @@ describe('Integration Tests - Full GTD Clarification Workflow', () => {
   let mockClarificationService: jest.Mocked<GTDClarificationService>;
 
   beforeEach(() => {
-    // Setup mock app with workspace
-    mockApp = {
-      workspace: {
-        getActiveViewOfType: jest.fn()
-      }
-    };
-
-    // Setup mock manifest
-    mockManifest = {
-      id: 'obsidian-gtd',
-      name: 'GTD Assistant',
-      version: '1.0.0'
-    };
-
     // Setup mock editor
     mockEditor = {
       getSelection: jest.fn(),
@@ -39,6 +25,20 @@ describe('Integration Tests - Full GTD Clarification Workflow', () => {
     // Setup mock view
     mockView = {
       editor: mockEditor
+    };
+
+    // Setup mock app with workspace
+    mockApp = {
+      workspace: {
+        getActiveViewOfType: jest.fn().mockReturnValue(mockView)
+      }
+    };
+
+    // Setup mock manifest
+    mockManifest = {
+      id: 'obsidian-gtd',
+      name: 'GTD Assistant',
+      version: '1.0.0'
     };
 
     // Setup mock clarification service
@@ -52,6 +52,10 @@ describe('Integration Tests - Full GTD Clarification Workflow', () => {
 
     // Create plugin instance
     plugin = new ObsidianGTDPlugin(mockApp, mockManifest);
+    
+    // Explicitly set the app property to ensure it's available
+    (plugin as any).app = mockApp;
+    
     plugin.clarificationService = mockClarificationService;
     
     // Mock plugin methods
