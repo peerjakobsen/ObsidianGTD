@@ -28,6 +28,24 @@ export class Plugin {
   }
 }
 
+export class Editor {
+  getSelection = jest.fn();
+}
+
+export class MarkdownView {
+  file: any = {};
+  editor: any;
+  
+  constructor(app?: any, file?: any) {
+    this.editor = new Editor();
+    this.file = file || {};
+  }
+}
+
+export class MarkdownFileInfo {
+  file: any = {};
+}
+
 export class PluginSettingTab {
   app: any;
   plugin: any;
@@ -48,6 +66,6 @@ export class Setting {
   addButton() { return this; }
 }
 
-export class Notice {
-  constructor(message: string) {}
-}
+export const Notice = jest.fn().mockImplementation((message: string, timeout?: number) => ({
+  hide: jest.fn()
+}));

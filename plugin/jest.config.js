@@ -13,7 +13,7 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^obsidian$': '<rootDir>/tests/__mocks__/obsidian.ts',
   },
 };
