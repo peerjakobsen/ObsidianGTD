@@ -138,12 +138,19 @@ async def health():
 
 
 @app.post("/process", response_model=ProcessResponse)
-async def process(request: ProcessRequest):
+async def process(request: ProcessRequest, raw_request: Request):
     """Process content using AI via AWS Bedrock."""
     start_time = time.time()
     logger.info(f"Process endpoint accessed with task: {request.task}")
 
     try:
+        # Validate Content-Type header
+        content_type = raw_request.headers.get("content-type", "")
+        if not content_type or not content_type.startswith("application/json"):
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="Content-Type must be application/json"
+            )
         # For GTD clarification, pass content directly; for other tasks, wrap it
         if request.task == "gtd-clarification":
             # Pass the content directly - it's already a complete GTD prompt from the client

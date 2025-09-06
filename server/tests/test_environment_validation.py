@@ -108,7 +108,7 @@ class TestEnvironmentVariableValidation:
             with patch('bedrock_client.boto3.client') as mock_boto3:
                 from bedrock_client import BedrockClient
                 
-                client = BedrockClient()
+                _client = BedrockClient()
                 
                 # Check that boto3 client was called with correct parameters
                 mock_boto3.assert_called_once_with(
@@ -159,4 +159,4 @@ class TestDotEnvFileLoading:
             # Check model_config has correct settings (Pydantic v2 style)
             assert hasattr(Settings, 'model_config')
             assert Settings.model_config.get('env_file') == ".env"
-            assert Settings.model_config.get('case_sensitive') == False
+            assert not Settings.model_config.get('case_sensitive')

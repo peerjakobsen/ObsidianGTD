@@ -1,8 +1,6 @@
 """Comprehensive input validation tests with edge cases and error scenarios."""
 
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
-import pytest
 from main import app
 
 client = TestClient(app)

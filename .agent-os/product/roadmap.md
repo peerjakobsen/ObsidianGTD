@@ -7,11 +7,11 @@
 
 ### Features
 
-- [ ] Basic Obsidian plugin scaffold with settings panel `S`
+- [x] Basic Obsidian plugin scaffold with settings panel `S`
 - [x] FastAPI backend service with health check endpoint `S`
 - [x] AWS Bedrock integration with Claude API `M`
-- [ ] Text selection to inbox clarification command `M`
-- [ ] Tasks plugin compatible output format `M`
+- [x] Text selection to inbox clarification command `M`
+- [x] Tasks plugin compatible output format `M`
 - [ ] Context tag detection (computer, phone, errands) `S`
 - [ ] Time estimation generation (#5m to #4h format) `S`
 
