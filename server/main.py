@@ -14,6 +14,7 @@ from models import (
     ErrorResponse,
     ErrorDetail,
 )
+from bedrock_client import bedrock_client
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper()),
@@ -143,36 +144,50 @@ async def process(request: ProcessRequest):
     logger.info(f"Process endpoint accessed with task: {request.task}")
 
     try:
-        # For now, return a mock response until Bedrock integration is complete
-        # This will be replaced with actual Bedrock client call in task 3.8
+        # Create a contextual prompt based on the task type
+        task_prompt = f"""Task: {request.task}
+Content to process: {request.content}
 
+Please process the above content according to the specified task."""
+
+        # Call Bedrock API via bedrock_client
+        bedrock_response = await bedrock_client.process_request(task_prompt)
+        
         processing_time_ms = int((time.time() - start_time) * 1000)
 
-        # Mock AI response based on task type
-        if request.task == "organize":
-            result = f"Organized content: {request.content[:100]}..."
-        elif request.task == "summarize":
-            result = f"Summary: {request.content[:50]}..."
+        if bedrock_response["success"]:
+            # Successful Bedrock response
+            metadata = ProcessMetadata(
+                model=bedrock_response["model"],
+                tokens_used=len(request.content.split()) + len(bedrock_response["response"].split()),
+                processing_time_ms=processing_time_ms,
+            )
+
+            response = ProcessResponse(
+                result=bedrock_response["response"], 
+                status="success", 
+                metadata=metadata
+            )
+
+            logger.info(f"Process completed successfully in {processing_time_ms}ms")
+            return response
         else:
-            result = f"Processed '{request.task}' task: {request.content[:75]}..."
+            # Bedrock returned an error
+            logger.error(f"Bedrock processing failed: {bedrock_response['error']}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"AI service error: {bedrock_response['error']}"
+            )
 
-        metadata = ProcessMetadata(
-            model="anthropic.claude-3-sonnet-20240229-v1:0",
-            tokens_used=len(request.content.split()) + 50,  # Mock token count
-            processing_time_ms=processing_time_ms,
-        )
-
-        response = ProcessResponse(result=result, status="success", metadata=metadata)
-
-        logger.info(f"Process completed in {processing_time_ms}ms")
-        return response
-
+    except HTTPException:
+        # Re-raise HTTP exceptions to preserve status codes
+        raise
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
         processing_time_ms = int((time.time() - start_time) * 1000)
 
         metadata = ProcessMetadata(
-            model="anthropic.claude-3-sonnet-20240229-v1:0",
+            model=settings.bedrock_model_id,
             tokens_used=0,
             processing_time_ms=processing_time_ms,
         )

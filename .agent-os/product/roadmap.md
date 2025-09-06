@@ -8,7 +8,7 @@
 ### Features
 
 - [ ] Basic Obsidian plugin scaffold with settings panel `S`
-- [ ] FastAPI backend service with health check endpoint `S`
+- [x] FastAPI backend service with health check endpoint `S`
 - [ ] AWS Bedrock integration with Claude API `M`
 - [ ] Text selection to task conversion command `M`
 - [ ] Tasks plugin compatible output format `M`

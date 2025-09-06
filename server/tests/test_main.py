@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from unittest.mock import patch, AsyncMock
 from main import app
 
 client = TestClient(app)
@@ -64,8 +65,16 @@ class TestProcessEndpoint:
         assert response.status_code != 404
         assert response.status_code != 405
 
-    def test_process_endpoint_valid_request(self):
-        """Test that process endpoint accepts valid requests."""
+    @patch('main.bedrock_client.process_request', new_callable=AsyncMock)
+    def test_process_endpoint_valid_request(self, mock_bedrock):
+        """Test that process endpoint accepts valid requests with mocked Bedrock."""
+        # Mock successful Bedrock response
+        mock_bedrock.return_value = {
+            "success": True,
+            "response": "Organized tasks: 1. Clean inbox 2. Organize tasks",
+            "model": "us.anthropic.claude-sonnet-4-20250514-v1:0"
+        }
+        
         payload = {
             "task": "organize",
             "content": "Clean up my inbox and organize tasks",
@@ -73,17 +82,38 @@ class TestProcessEndpoint:
         response = client.post("/process", json=payload)
 
         # Should return 200 for successful processing
-        assert response.status_code in [
-            200,
-            422,
-            500,
-        ]  # 422 for validation, 500 for server error
+        assert response.status_code == 200
 
-        if response.status_code == 200:
-            json_data = response.json()
-            assert "result" in json_data
-            assert "status" in json_data
-            assert "metadata" in json_data
+        json_data = response.json()
+        assert "result" in json_data
+        assert "status" in json_data
+        assert "metadata" in json_data
+        assert json_data["status"] == "success"
+        assert "Organized tasks" in json_data["result"]
+        assert json_data["metadata"]["model"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
+
+    @patch('main.bedrock_client.process_request', new_callable=AsyncMock)
+    def test_process_endpoint_bedrock_error(self, mock_bedrock):
+        """Test that process endpoint handles Bedrock service errors."""
+        # Mock Bedrock error response
+        mock_bedrock.return_value = {
+            "success": False,
+            "error": "ServiceUnavailableException: Service temporarily unavailable",
+            "model": "us.anthropic.claude-sonnet-4-20250514-v1:0"
+        }
+        
+        payload = {
+            "task": "organize",
+            "content": "Test content",
+        }
+        response = client.post("/process", json=payload)
+
+        # Should return 503 for service unavailable
+        assert response.status_code == 503
+        
+        json_data = response.json()
+        assert "error" in json_data
+        assert "ServiceUnavailableException" in json_data["error"]["details"]
 
     def test_process_endpoint_invalid_request_missing_task(self):
         """Test that process endpoint rejects requests missing task."""
@@ -103,15 +133,31 @@ class TestProcessEndpoint:
         response = client.post("/process", json=payload)
         assert response.status_code == 422
 
-    def test_process_endpoint_content_type(self):
+    @patch('main.bedrock_client.process_request', new_callable=AsyncMock)
+    def test_process_endpoint_content_type(self, mock_bedrock):
         """Test that process endpoint accepts JSON content type."""
+        # Mock successful Bedrock response
+        mock_bedrock.return_value = {
+            "success": True,
+            "response": "Processed test content successfully",
+            "model": "us.anthropic.claude-sonnet-4-20250514-v1:0"
+        }
+        
         payload = {"task": "organize", "content": "Test content"}
         response = client.post("/process", json=payload)
         # Should not fail due to content type issues
         assert response.status_code != 415  # Unsupported Media Type
 
-    def test_process_endpoint_large_content(self):
+    @patch('main.bedrock_client.process_request', new_callable=AsyncMock)
+    def test_process_endpoint_large_content(self, mock_bedrock):
         """Test that process endpoint handles large content appropriately."""
+        # Mock successful Bedrock response for large content
+        mock_bedrock.return_value = {
+            "success": True,
+            "response": "Summary of large content: This is a long repetitive text that has been processed.",
+            "model": "us.anthropic.claude-sonnet-4-20250514-v1:0"
+        }
+        
         large_content = "x" * 5000  # Large but within limits
         payload = {"task": "summarize", "content": large_content}
         response = client.post("/process", json=payload)
