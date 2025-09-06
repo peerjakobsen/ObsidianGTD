@@ -2,15 +2,15 @@
 
 ## Phase 1: Core MVP
 
-**Goal:** Deliver functional inbox processing with AI-powered task generation
-**Success Criteria:** 80% of generated tasks require no manual editing, <3 seconds processing time
+**Goal:** Deliver functional inbox clarification with AI-powered next action identification
+**Success Criteria:** 80% of clarified actions require no manual editing, <3 seconds clarification time
 
 ### Features
 
 - [ ] Basic Obsidian plugin scaffold with settings panel `S`
 - [x] FastAPI backend service with health check endpoint `S`
 - [x] AWS Bedrock integration with Claude API `M`
-- [ ] Text selection to task conversion command `M`
+- [ ] Text selection to inbox clarification command `M`
 - [ ] Tasks plugin compatible output format `M`
 - [ ] Context tag detection (computer, phone, errands) `S`
 - [ ] Time estimation generation (#5m to #4h format) `S`
@@ -24,16 +24,16 @@
 ## Phase 2: Intelligent Processing
 
 **Goal:** Add advanced metadata detection and project association
-**Success Criteria:** Users report 90% satisfaction with generated task quality
+**Success Criteria:** Users report 90% satisfaction with clarified next action quality
 
 ### Features
 
 - [ ] Energy level assessment (#e-low/medium/high) `S`
 - [ ] Project association detection and tagging `M`
-- [ ] Action verb optimization for better task formatting `S`
+- [ ] Action verb optimization for better next action formatting `S`
 - [ ] Batch processing for multiple inbox items `M`
 - [ ] Custom prompt template configuration `L`
-- [ ] Processing history and undo functionality `M`
+- [ ] Clarification history and undo functionality `M`
 
 ### Dependencies
 
@@ -56,5 +56,5 @@
 
 ### Dependencies
 
-- Sufficient task history for analysis
+- Sufficient next action history for analysis
 - User adoption of Phase 1/2 features

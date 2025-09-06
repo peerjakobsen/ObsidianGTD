@@ -20,16 +20,16 @@ export default class ObsidianGTDPlugin extends Plugin {
     });
     ribbonIconEl.addClass('gtd-ribbon-class');
 
-    // Add command to convert text to tasks
+    // Add command to clarify inbox text
     this.addCommand({
-      id: 'convert-to-tasks',
-      name: 'Convert selected text to GTD tasks',
+      id: 'clarify-inbox-text',
+      name: 'Clarify selected text (GTD)',
       editorCallback: (editor, view) => {
         const selectedText = editor.getSelection();
         if (selectedText) {
-          this.convertTextToTasks(selectedText);
+          this.clarifyInboxText(selectedText);
         } else {
-          console.log('No text selected');
+          console.log('No text selected for clarification');
         }
       }
     });
@@ -52,8 +52,8 @@ export default class ObsidianGTDPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  private async convertTextToTasks(text: string) {
-    // This will be implemented in later tasks
-    console.log('Converting text to tasks:', text);
+  private async clarifyInboxText(text: string) {
+    // This will be implemented in later tasks - GTD clarification process
+    console.log('Clarifying inbox text:', text);
   }
 }
