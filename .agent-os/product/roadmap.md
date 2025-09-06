@@ -12,8 +12,8 @@
 - [x] AWS Bedrock integration with Claude API `M`
 - [x] Text selection to inbox clarification command `M`
 - [x] Tasks plugin compatible output format `M`
-- [ ] Context tag detection (computer, phone, errands, etc.) `S`
-- [ ] Time estimation generation (#5m to #4h format) `S`
+- [x] Context tag detection (computer, phone, errands, etc.) `S`
+- [x] Time estimation generation (#5m to #4h format) `S`
 
 ### Dependencies
 

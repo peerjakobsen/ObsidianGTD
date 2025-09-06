@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import ObsidianGTDPlugin from '../src/main';
 import { GTDClarificationService } from '../src/clarification-service';
-import { MarkdownView } from 'obsidian';
 
 // Mock the Obsidian APIs
 jest.mock('obsidian');
@@ -47,11 +46,11 @@ describe('User Acceptance Tests - GTD Clarification Workflows', () => {
     (plugin as any).app = mockApp;
     
     // Mock plugin methods to prevent actual initialization
-    plugin.addCommand = jest.fn();
-    plugin.addRibbonIcon = jest.fn().mockReturnValue({ addClass: jest.fn() });
-    plugin.addSettingTab = jest.fn();
-    plugin.loadData = jest.fn().mockResolvedValue({});
-    plugin.saveData = jest.fn();
+    (plugin as any).addCommand = jest.fn().mockReturnValue({});
+    (plugin as any).addRibbonIcon = jest.fn().mockReturnValue({ addClass: jest.fn() });
+    (plugin as any).addSettingTab = jest.fn();
+    (plugin as any).loadData = jest.fn().mockImplementation(() => Promise.resolve({}));
+    (plugin as any).saveData = jest.fn().mockImplementation(() => Promise.resolve());
     
     // Setup mock service
     mockClarificationService = {
@@ -65,7 +64,7 @@ describe('User Acceptance Tests - GTD Clarification Workflows', () => {
         hasApiKey: true,
         timeout: 30000
       })
-    } as jest.Mocked<GTDClarificationService>;
+    } as any;
     
     // Replace plugin service with mock
     (plugin as any).clarificationService = mockClarificationService;

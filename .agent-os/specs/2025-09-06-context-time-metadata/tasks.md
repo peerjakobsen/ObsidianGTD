@@ -9,12 +9,12 @@
   - [x] 1.4 Test prompt changes with various inbox item types
   - [x] 1.5 Verify all tests pass
 
-- [ ] 2. Implement Response Parsing for Context Tags and Time Estimates
-  - [ ] 2.1 Write tests for metadata extraction from AI responses
-  - [ ] 2.2 Create parsing logic to extract context tags from clarified text
-  - [ ] 2.3 Add time estimate parsing with format validation
-  - [ ] 2.4 Implement fallback handling when metadata is missing
-  - [ ] 2.5 Verify all tests pass
+- [x] 2. Implement Response Parsing for Context Tags and Time Estimates
+  - [x] 2.1 Write tests for metadata extraction from AI responses
+  - [x] 2.2 Create parsing logic to extract context tags from clarified text
+  - [x] 2.3 Add time estimate parsing with format validation
+  - [x] 2.4 Implement fallback handling when metadata is missing
+  - [x] 2.5 Verify all tests pass
 
 - [x] 3. Update Task Formatting for Tasks Plugin Compatibility
   - [x] 3.1 Write tests for enhanced task format output
@@ -23,16 +23,16 @@
   - [x] 3.4 Ensure backward compatibility with existing task format
   - [x] 3.5 Verify all tests pass
 
-- [ ] 4. Add User Settings and Configuration Options
-  - [ ] 4.1 Write tests for settings panel enhancements
-  - [ ] 4.2 Add toggle settings for context detection feature
-  - [ ] 4.3 Add toggle settings for time estimation feature
-  - [ ] 4.4 Update settings UI to include new configuration options
-  - [ ] 4.5 Verify all tests pass
+- [x] 4. Add User Settings and Configuration Options
+  - [x] 4.1 Write tests for settings panel enhancements
+  - [x] 4.2 Add toggle settings for context detection feature
+  - [x] 4.3 Add toggle settings for time estimation feature
+  - [x] 4.4 Update settings UI to include new configuration options
+  - [x] 4.5 Verify all tests pass
 
-- [ ] 5. Integration Testing and Quality Assurance
-  - [ ] 5.1 Write integration tests for complete clarification workflow
-  - [ ] 5.2 Test various inbox item types with new metadata features
-  - [ ] 5.3 Verify Tasks plugin compatibility with enhanced output
-  - [ ] 5.4 Test error handling and graceful degradation scenarios
-  - [ ] 5.5 Run full test suite and ensure all tests pass
+- [x] 5. Integration Testing and Quality Assurance
+  - [x] 5.1 Write integration tests for complete clarification workflow
+  - [x] 5.2 Test various inbox item types with new metadata features
+  - [x] 5.3 Verify Tasks plugin compatibility with enhanced output
+  - [x] 5.4 Test error handling and graceful degradation scenarios
+  - [x] 5.5 Run full test suite and ensure all tests pass
