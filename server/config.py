@@ -10,7 +10,7 @@ load_dotenv()
 class Settings(BaseSettings):
   aws_region: str = 'us-east-1'
   aws_bearer_token_bedrock: str
-  bedrock_model_id: str = 'anthropic.claude-sonnet-4-20250514-v1:0'
+  bedrock_model_id: str = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
   log_level: str = 'INFO'
   host: str = 'localhost'
   port: int = 8000
