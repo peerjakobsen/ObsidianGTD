@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-gtd",
+  "name": "Obsidian GTD",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Getting Things Done (GTD) workflow with AI assistance via local FastAPI server",
+  "author": "Your Name",
+  "authorUrl": "",
+  "fundingUrl": "",
+  "isDesktopOnly": false
+}

@@ -1,0 +1,15 @@
+[project]
+name = "fastapi-bedrock-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.40.25",
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "uvicorn>=0.35.0",
+]

@@ -1,0 +1,114 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Python
+server/__pycache__/
+server/*.py[cod]
+server/*$py.class
+server/*.so
+server/.Python
+server/build/
+server/develop-eggs/
+server/dist/
+server/downloads/
+server/eggs/
+server/.eggs/
+server/lib/
+server/lib64/
+server/parts/
+server/sdist/
+server/var/
+server/wheels/
+server/*.egg-info/
+server/.installed.cfg
+server/*.egg
+server/MANIFEST
+
+# Virtual environments
+server/.venv/
+server/venv/
+server/ENV/
+server/env/
+
+# UV
+server/.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js (for Obsidian plugin)
+plugin/node_modules/
+plugin/npm-debug.log*
+plugin/yarn-debug.log*
+plugin/yarn-error.log*
+plugin/lerna-debug.log*
+plugin/package-lock.json
+plugin/yarn.lock
+
+# Obsidian plugin build
+plugin/main.js
+plugin/styles.css
+plugin/data.json
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# ESLint cache
+.eslintcache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Temporary folders
+tmp/
+temp/
