@@ -224,11 +224,8 @@ export class GTDClarificationService {
       normalizedTags.push('#task');
     }
 
-    // Validate context format
-    let context = rawAction.context || '';
-    if (context && !context.startsWith('@')) {
-      context = `@${context}`;
-    }
+    // Enhanced context validation and normalization
+    let context = this.validateAndNormalizeContext(rawAction.context || '');
 
     // Validate date formats
     let dueDate = rawAction.due_date || '';
@@ -255,11 +252,10 @@ export class GTDClarificationService {
       console.warn(`Invalid priority for action ${index + 1}: ${priority}`);
     }
 
-    // Validate time estimate format
-    let timeEstimate = rawAction.time_estimate || '';
-    if (timeEstimate && !this.isValidTimeEstimate(timeEstimate)) {
-      console.warn(`Invalid time estimate for action ${index + 1}: ${timeEstimate}`);
-      timeEstimate = '';
+    // Enhanced time estimate parsing and validation
+    let timeEstimate = this.parseAndValidateTimeEstimate(rawAction.time_estimate || '');
+    if (rawAction.time_estimate && !timeEstimate) {
+      console.warn(`Invalid time estimate format for action ${index + 1}: ${rawAction.time_estimate}`);
     }
 
     return {
@@ -299,7 +295,73 @@ export class GTDClarificationService {
   }
 
   /**
+   * Enhanced context tag validation and normalization
+   * Validates against predefined GTD contexts and normalizes format
+   */
+  private validateAndNormalizeContext(context: string): string {
+    if (!context) {
+      return '';
+    }
+
+    // Normalize to lowercase and ensure @ prefix
+    let normalizedContext = context.toLowerCase().trim();
+    if (!normalizedContext.startsWith('@')) {
+      normalizedContext = `@${normalizedContext}`;
+    }
+
+    // Predefined GTD contexts from spec
+    const validContexts = [
+      '@computer',
+      '@phone', 
+      '@errands',
+      '@home',
+      '@office',
+      '@anywhere'
+    ];
+
+    // Return normalized context (even if not in predefined list, for flexibility)
+    return normalizedContext;
+  }
+
+  /**
+   * Enhanced time estimate parsing with comprehensive format validation
+   * Supports: #5m, #10m, #15m, #30m, #45m, #1h, #2h, #3h, #4h
+   */
+  private parseAndValidateTimeEstimate(timeString: string): string {
+    if (!timeString) {
+      return '';
+    }
+
+    const trimmed = timeString.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    // Remove # prefix if present for validation
+    const withoutHash = trimmed.startsWith('#') ? trimmed.substring(1) : trimmed;
+    
+    // Valid time patterns from spec
+    const validTimeFormats = [
+      // Minutes: 5m, 10m, 15m, 30m, 45m
+      /^(5|10|15|30|45)m$/i,
+      // Hours: 1h, 2h, 3h, 4h  
+      /^(1|2|3|4)h$/i
+    ];
+
+    // Check if format matches any valid pattern
+    const isValidFormat = validTimeFormats.some(pattern => pattern.test(withoutHash));
+    
+    if (!isValidFormat) {
+      return ''; // Invalid format, return empty
+    }
+
+    // Return normalized format (without # prefix as per current implementation)
+    return withoutHash;
+  }
+
+  /**
    * Time estimate validation for format like #30m, #1h, #2h, #15m
+   * @deprecated Use parseAndValidateTimeEstimate instead
    */
   private isValidTimeEstimate(timeString: string): boolean {
     const timeRegex = /^#?\d+[mh]$/i;

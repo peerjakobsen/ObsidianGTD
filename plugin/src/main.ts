@@ -101,7 +101,8 @@ export default class ObsidianGTDPlugin extends Plugin {
       // Hide progress notice
       progressNotice.hide();
       
-      if (result.success && result.actions.length > 0) {
+      // Check if we have any actions to display (either successful or fallback actions)
+      if (result.actions.length > 0) {
         // Convert actions to Tasks format
         const taskLines = this.clarificationService.convertToTasksFormat(result);
         logger.debug('Plugin', 'Tasks format conversion completed', { taskCount: taskLines.length });
@@ -129,15 +130,25 @@ export default class ObsidianGTDPlugin extends Plugin {
           logger.warn('Plugin', 'Error inserting tasks into editor (likely running in test environment)', { error: error.message });
         }
         
-        // Show success notice with details
+        // Show appropriate notice based on success status
         const actionCount = result.actions.length;
         const actionTypes = result.actions.map(a => a.type).join(', ');
-        new Notice(`✅ GTD clarification completed! Generated ${actionCount} actions: ${actionTypes}`, 5000);
         
-        logger.info('Plugin', 'User notified of successful clarification', { actionCount, actionTypes });
+        if (result.success) {
+          new Notice(`✅ GTD clarification completed! Generated ${actionCount} actions: ${actionTypes}`, 5000);
+          logger.info('Plugin', 'User notified of successful clarification', { actionCount, actionTypes });
+        } else {
+          // Partial failure with fallback actions
+          new Notice(`⚠️ ${result.error || 'Processing issue occurred'} Created ${actionCount} fallback actions.`, 8000);
+          logger.warn('Plugin', 'Clarification had issues but created fallback actions', { 
+            error: result.error,
+            actionCount,
+            textLength: text.length 
+          });
+        }
         
       } else {
-        // Show error or no actions message
+        // No actions generated at all
         const errorMessage = result.error || 'No actionable items found in the selected text.';
         new Notice(`⚠️ ${errorMessage}`, 8000);
         

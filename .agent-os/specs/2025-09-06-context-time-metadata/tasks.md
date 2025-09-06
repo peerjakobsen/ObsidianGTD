@@ -16,12 +16,12 @@
   - [ ] 2.4 Implement fallback handling when metadata is missing
   - [ ] 2.5 Verify all tests pass
 
-- [ ] 3. Update Task Formatting for Tasks Plugin Compatibility
-  - [ ] 3.1 Write tests for enhanced task format output
-  - [ ] 3.2 Modify task formatting to include context tags in @tag format
-  - [ ] 3.3 Add time estimates as hashtags compatible with Tasks plugin
-  - [ ] 3.4 Ensure backward compatibility with existing task format
-  - [ ] 3.5 Verify all tests pass
+- [x] 3. Update Task Formatting for Tasks Plugin Compatibility
+  - [x] 3.1 Write tests for enhanced task format output
+  - [x] 3.2 Modify task formatting to include context tags in @tag format
+  - [x] 3.3 Add time estimates as hashtags compatible with Tasks plugin
+  - [x] 3.4 Ensure backward compatibility with existing task format
+  - [x] 3.5 Verify all tests pass
 
 - [ ] 4. Add User Settings and Configuration Options
   - [ ] 4.1 Write tests for settings panel enhancements

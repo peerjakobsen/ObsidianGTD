@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { GTDClarificationService, GTDActionType, ClarificationResult, createClarificationService } from '../src/clarification-service';
 import { GTDAPIClient } from '../src/api-client';
 import { GTDSettings } from '../src/settings';
@@ -448,6 +448,539 @@ describe('GTDClarificationService', () => {
       expect(mockApiClient.clarifyText).toHaveBeenCalledWith(
         expect.any(String)
       );
+    });
+  });
+  });
+
+describe('GTDClarificationService - Metadata Extraction', () => {
+  let service: GTDClarificationService;
+  let mockApiClient: jest.Mocked<GTDAPIClient>;
+  let mockSettings: GTDSettings;
+
+  beforeEach(() => {
+    // Create mock settings
+    mockSettings = {
+      backendUrl: 'http://localhost:8000',
+      timeout: 30000,
+      apiKey: 'test-api-key'
+    };
+
+    // Create mock API client
+    mockApiClient = {
+      clarifyText: jest.fn(),
+      testConnection: jest.fn(),
+      updateConfig: jest.fn(),
+      getConfig: jest.fn()
+    } as any;
+
+    // Mock the GTDPromptGenerator methods
+    const { GTDPromptGenerator } = require('../src/gtd-prompts');
+    GTDPromptGenerator.validateInput = jest.fn();
+    GTDPromptGenerator.generatePrompt = jest.fn();
+    GTDPromptGenerator.getSuggestedContexts = jest.fn();
+
+    service = new GTDClarificationService(mockApiClient, mockSettings);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Metadata Extraction from AI Responses', () => {
+    describe('Context Tag Detection', () => {
+      it('should extract and validate predefined context tags', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test inbox text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Send email to client',
+              context: '@computer',
+              time_estimate: '#30m',
+              tags: ['#urgent']
+            },
+            {
+              type: 'next_action', 
+              action: 'Call supplier for quote',
+              context: '@phone',
+              time_estimate: '#15m',
+              tags: ['#followup']
+            },
+            {
+              type: 'next_action',
+              action: 'Pick up documents from office',
+              context: '@errands', 
+              time_estimate: '#45m',
+              tags: ['#admin']
+            },
+            {
+              type: 'next_action',
+              action: 'Organize home office',
+              context: '@home',
+              time_estimate: '#2h',
+              tags: ['#organizing']
+            },
+            {
+              type: 'next_action',
+              action: 'Attend team meeting',
+              context: '@office',
+              time_estimate: '#1h',
+              tags: ['#meeting']
+            },
+            {
+              type: 'next_action',
+              action: 'Review quarterly reports',
+              context: '@anywhere',
+              time_estimate: '#1h',
+              tags: ['#review']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 300,
+            processing_time_ms: 2000
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test inbox text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(6);
+
+        // Verify context tags are correctly extracted
+        expect(result.actions[0].context).toBe('@computer');
+        expect(result.actions[1].context).toBe('@phone');  
+        expect(result.actions[2].context).toBe('@errands');
+        expect(result.actions[3].context).toBe('@home');
+        expect(result.actions[4].context).toBe('@office');
+        expect(result.actions[5].context).toBe('@anywhere');
+      });
+
+      it('should handle invalid context tags with fallback', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        GTDPromptGenerator.getSuggestedContexts.mockReturnValue(['@computer']);
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Invalid context task',
+              context: '@invalid_context', // Not in predefined list
+              tags: ['#test']
+            },
+            {
+              type: 'next_action',
+              action: 'Missing context task',
+              // No context provided
+              tags: ['#test']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 100,
+            processing_time_ms: 1000
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(2);
+        
+        // Should accept the invalid context as-is but ensure @ prefix
+        expect(result.actions[0].context).toBe('@invalid_context');
+        
+        // Should fall back to inferred context for missing context
+        expect(result.actions[1].context).toBe('@computer'); // From getSuggestedContexts mock
+      });
+
+      it('should normalize context tags by adding @ prefix when missing', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Task without @ prefix',
+              context: 'computer', // Missing @ prefix
+              tags: ['#test']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 50,
+            processing_time_ms: 800
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions[0].context).toBe('@computer');
+      });
+    });
+
+    describe('Time Estimate Parsing', () => {
+      it('should extract and validate time estimates in correct format', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Quick task',
+              context: '@computer',
+              time_estimate: '#5m',
+              tags: ['#quick']
+            },
+            {
+              type: 'next_action',
+              action: 'Medium task',
+              context: '@phone',
+              time_estimate: '#30m',
+              tags: ['#medium']
+            },
+            {
+              type: 'next_action',
+              action: 'Long task',
+              context: '@home',
+              time_estimate: '#2h',
+              tags: ['#long']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 200,
+            processing_time_ms: 1500
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(3);
+        
+        // Verify time estimates are correctly extracted (without # prefix internally)
+        expect(result.actions[0].time_estimate).toBe('5m');
+        expect(result.actions[1].time_estimate).toBe('30m');
+        expect(result.actions[2].time_estimate).toBe('2h');
+      });
+
+      it('should validate time estimate format and reject invalid formats', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt', 
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Task with invalid time format',
+              context: '@computer',
+              time_estimate: '30 minutes', // Invalid format
+              tags: ['#test']
+            },
+            {
+              type: 'next_action',
+              action: 'Task with another invalid format',
+              context: '@phone',
+              time_estimate: '#2.5h', // Invalid format (decimal)
+              tags: ['#test']
+            },
+            {
+              type: 'next_action',
+              action: 'Task with valid format',
+              context: '@home',
+              time_estimate: '#45m', // Valid format
+              tags: ['#test']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 150,
+            processing_time_ms: 1200
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(3);
+        
+        // Invalid time estimates should be cleared
+        expect(result.actions[0].time_estimate).toBe(''); // Invalid format cleared
+        expect(result.actions[1].time_estimate).toBe(''); // Invalid format cleared
+        expect(result.actions[2].time_estimate).toBe('45m'); // Valid format preserved
+      });
+
+      it('should handle missing time estimates gracefully', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Task without time estimate',
+              context: '@computer',
+              // No time_estimate field
+              tags: ['#test']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 75,
+            processing_time_ms: 900
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions[0].time_estimate).toBe(''); // Should be empty string when missing
+      });
+
+      it('should normalize time estimates by adding # prefix when missing', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Test text'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Task with time but no # prefix',
+              context: '@computer',
+              time_estimate: '15m', // Missing # prefix but valid format
+              tags: ['#test']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 60,
+            processing_time_ms: 800
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Test text');
+
+        expect(result.success).toBe(true);
+        expect(result.actions[0].time_estimate).toBe('15m'); // Should preserve valid format even without #
+      });
+    });
+
+    describe('Combined Metadata Extraction', () => {
+      it('should extract both context tags and time estimates together', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Complex task with both metadata'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Research competitors online',
+              context: '@computer',
+              time_estimate: '#1h',
+              project: 'Market Analysis',
+              tags: ['#research', '#competitive-analysis']
+            },
+            {
+              type: 'waiting_for',
+              action: 'Approval from legal team',
+              context: '@anywhere',
+              time_estimate: '#5m',
+              project: 'Product Launch',
+              tags: ['#waiting', '#legal']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 180,
+            processing_time_ms: 1400
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Complex task with both metadata');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(2);
+        
+        // Verify both context and time metadata extracted correctly
+        expect(result.actions[0].context).toBe('@computer');
+        expect(result.actions[0].time_estimate).toBe('1h');
+        expect(result.actions[0].project).toBe('Market Analysis');
+        
+        expect(result.actions[1].context).toBe('@anywhere');
+        expect(result.actions[1].time_estimate).toBe('5m');
+        expect(result.actions[1].project).toBe('Product Launch');
+        expect(result.actions[1].tags).toContain('#waiting'); // Auto-added for waiting_for
+      });
+
+      it('should handle partial metadata and provide fallbacks', async () => {
+        const { GTDPromptGenerator } = require('../src/gtd-prompts');
+        
+        GTDPromptGenerator.validateInput.mockReturnValue({
+          isValid: true,
+          sanitizedText: 'Partial metadata task'
+        });
+
+        GTDPromptGenerator.generatePrompt.mockReturnValue({
+          systemPrompt: 'System prompt',
+          userPrompt: 'User prompt'
+        });
+
+        GTDPromptGenerator.getSuggestedContexts.mockReturnValue(['@computer']);
+
+        const mockAPIResponse = {
+          result: JSON.stringify([
+            {
+              type: 'next_action',
+              action: 'Task with context only',
+              context: '@phone',
+              // No time_estimate
+              tags: ['#partial']
+            },
+            {
+              type: 'next_action', 
+              action: 'Task with time only',
+              // No context
+              time_estimate: '#45m',
+              tags: ['#partial']
+            },
+            {
+              type: 'next_action',
+              action: 'Task with neither',
+              // No context or time_estimate
+              tags: ['#minimal']
+            }
+          ]),
+          status: 'success',
+          metadata: {
+            model: 'test-model',
+            tokens_used: 120,
+            processing_time_ms: 1100
+          }
+        };
+
+        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+
+        const result = await service.clarifyInboxText('Partial metadata task');
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(3);
+        
+        // First action: has context, missing time
+        expect(result.actions[0].context).toBe('@phone');
+        expect(result.actions[0].time_estimate).toBe('');
+        
+        // Second action: has time, missing context (should get fallback)
+        expect(result.actions[1].context).toBe('@computer'); // From fallback
+        expect(result.actions[1].time_estimate).toBe('45m');
+        
+        // Third action: missing both (should get context fallback, empty time)
+        expect(result.actions[2].context).toBe('@computer'); // From fallback  
+        expect(result.actions[2].time_estimate).toBe('');
+      });
     });
   });
 });
