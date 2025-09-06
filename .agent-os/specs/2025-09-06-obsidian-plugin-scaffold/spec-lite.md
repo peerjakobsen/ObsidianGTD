@@ -1,0 +1,3 @@
+# Obsidian Plugin Scaffold - Lite Summary
+
+Implement foundational Obsidian plugin structure with settings panel for backend configuration and text selection command that converts inbox text into properly formatted GTD tasks. The AI-powered conversion can generate multiple task types (Next Actions, Waiting For #waiting, Someday Maybe #maybe) from single selections while maintaining full Tasks plugin compatibility.

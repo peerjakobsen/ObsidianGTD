@@ -1,11 +1,12 @@
 {
   "id": "obsidian-gtd",
-  "name": "Obsidian GTD",
+  "name": "GTD Assistant",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Getting Things Done (GTD) workflow with AI assistance via local FastAPI server",
-  "author": "Your Name",
+  "description": "AI-powered GTD workflow assistant that converts inbox text into Tasks plugin compatible next actions with context tags, time estimates, and project associations",
+  "author": "Peer Jakobsen",
   "authorUrl": "",
   "fundingUrl": "",
-  "isDesktopOnly": false
+  "isDesktopOnly": false,
+  "requiredApiVersion": "1.0.0"
 }
