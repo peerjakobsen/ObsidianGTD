@@ -2,12 +2,12 @@
 
 ## Tasks
 
-- [ ] 1. Enhance AI Prompt Engineering for Metadata Detection
-  - [ ] 1.1 Write tests for context tag detection in clarification responses
-  - [ ] 1.2 Update clarification prompts to request context analysis (@computer, @phone, @errands, @home, @office, @anywhere)
-  - [ ] 1.3 Add time estimation instructions to prompts (#5m, #10m, #15m, #30m, #45m, #1h, #2h, #3h, #4h)
-  - [ ] 1.4 Test prompt changes with various inbox item types
-  - [ ] 1.5 Verify all tests pass
+- [x] 1. Enhance AI Prompt Engineering for Metadata Detection
+  - [x] 1.1 Write tests for context tag detection in clarification responses
+  - [x] 1.2 Update clarification prompts to request context analysis (@computer, @phone, @errands, @home, @office, @anywhere)
+  - [x] 1.3 Add time estimation instructions to prompts (#5m, #10m, #15m, #30m, #45m, #1h, #2h, #3h, #4h)
+  - [x] 1.4 Test prompt changes with various inbox item types
+  - [x] 1.5 Verify all tests pass
 
 - [ ] 2. Implement Response Parsing for Context Tags and Time Estimates
   - [ ] 2.1 Write tests for metadata extraction from AI responses
