@@ -30,7 +30,7 @@ describe('GTDPromptGenerator', () => {
       expect(prompt.systemPrompt).toContain('specific, physical action');
       expect(prompt.systemPrompt).toContain('start with a verb');
       expect(prompt.systemPrompt).toContain('Next Actions, Waiting For, or Someday/Maybe');
-      expect(prompt.systemPrompt).toContain('@calls|@errands|@computer');
+      expect(prompt.systemPrompt).toContain('@computer|@phone|@errands|@home|@office|@anywhere');
     });
   });
 
@@ -194,12 +194,12 @@ describe('GTDPromptGenerator', () => {
     });
 
     it('should reject text that is too long', () => {
-      const longText = 'A'.repeat(10001);
+      const longText = 'A'.repeat(50001);
       const result = GTDPromptGenerator.validateInput(longText);
       
       expect(result.isValid).toBe(false);
       expect(result.error).toContain('too long');
-      expect(result.error).toContain('10,000 characters');
+      expect(result.error).toContain('50,000 characters');
     });
 
     it('should trim and return valid text', () => {
@@ -210,18 +210,208 @@ describe('GTDPromptGenerator', () => {
     });
 
     it('should accept text at the character limit', () => {
-      const maxLengthText = 'A'.repeat(10000);
+      const maxLengthText = 'A'.repeat(50000);
       const result = GTDPromptGenerator.validateInput(maxLengthText);
       
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedText).toHaveLength(10000);
+      expect(result.sanitizedText).toHaveLength(50000);
+    });
+  });
+
+  describe('Context Tag Detection for Metadata', () => {
+    describe('Standard GTD Context Detection', () => {
+      it('should detect @computer context for computer-based actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Send email to the team');
+        expect(contexts).toContain('@computer');
+      });
+
+      it('should detect @phone context for phone-based actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Call John about the meeting');
+        expect(contexts).toContain('@phone');
+      });
+
+      it('should detect @errands context for shopping/errands', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Buy office supplies from the store');
+        expect(contexts).toContain('@errands');
+      });
+
+      it('should detect @home context for home-based actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Fix the leaky faucet in the kitchen');
+        expect(contexts).toContain('@home');
+      });
+
+      it('should detect @office context for office/workplace actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Schedule meeting with Sarah in conference room');
+        expect(contexts).toContain('@office');
+      });
+
+      it('should detect @anywhere context for location-independent actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Review the quarterly report');
+        expect(contexts).toContain('@anywhere');
+      });
+    });
+
+    describe('Enhanced Context Detection', () => {
+      it('should prioritize @phone over generic @computer for calling actions', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Call the client to discuss project timeline');
+        expect(contexts).toContain('@phone');
+        expect(contexts).not.toContain('@computer');
+      });
+
+      it('should detect @home for household and personal tasks', () => {
+        const homeContexts = [
+          'Clean the garage this weekend',
+          'Pay household bills online', 
+          'Organize family photos',
+          'Repair garden hose'
+        ];
+        
+        homeContexts.forEach(text => {
+          const contexts = GTDPromptGenerator.getSuggestedContexts(text);
+          expect(contexts).toContain('@home');
+        });
+      });
+
+      it('should detect @office for workplace-specific tasks', () => {
+        const officeContexts = [
+          'Update the team on project status',
+          'Schedule weekly standup meeting',
+          'Print reports for presentation',
+          'Book conference room for client meeting'
+        ];
+        
+        officeContexts.forEach(text => {
+          const contexts = GTDPromptGenerator.getSuggestedContexts(text);
+          expect(contexts).toContain('@office');
+        });
+      });
+
+      it('should detect @anywhere for location-independent tasks', () => {
+        const anywhereContexts = [
+          'Read industry report',
+          'Review contract terms',
+          'Think about vacation plans',
+          'Brainstorm project ideas'
+        ];
+        
+        anywhereContexts.forEach(text => {
+          const contexts = GTDPromptGenerator.getSuggestedContexts(text);
+          expect(contexts).toContain('@anywhere');
+        });
+      });
+
+      it('should handle multiple contexts in single text', () => {
+        const contexts = GTDPromptGenerator.getSuggestedContexts('Call client from home office and then email the proposal');
+        expect(contexts).toContain('@phone');
+        expect(contexts).toContain('@computer');
+        expect(contexts).toContain('@home');
+      });
+    });
+
+    describe('Prompt Context Instruction Tests', () => {
+      it('should include all required context options in system prompt', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Test inbox item');
+        const systemPrompt = prompt.systemPrompt;
+        
+        expect(systemPrompt).toContain('@computer');
+        expect(systemPrompt).toContain('@phone');
+        expect(systemPrompt).toContain('@errands');
+        expect(systemPrompt).toContain('@home');
+        expect(systemPrompt).toContain('@office');
+        expect(systemPrompt).toContain('@anywhere');
+      });
+
+      it('should provide context analysis instructions in user prompt', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Call manager about budget approval');
+        const userPrompt = prompt.userPrompt;
+        
+        expect(userPrompt).toContain('context is needed');
+        expect(userPrompt).toContain('@');
+      });
+
+      it('should request specific context analysis for different input types', () => {
+        const emailPrompt = GTDPromptGenerator.generatePrompt('Reply to client email', 'email');
+        const meetingPrompt = GTDPromptGenerator.generatePrompt('Follow up on action items', 'meeting_notes');
+        
+        expect(emailPrompt.userPrompt).toContain('context');
+        expect(meetingPrompt.userPrompt).toContain('context');
+      });
+    });
+  });
+
+  describe('Time Estimation Detection for Metadata', () => {
+    describe('Time Estimation Instruction Tests', () => {
+      it('should include time estimation instructions in system prompt', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Test inbox item');
+        const systemPrompt = prompt.systemPrompt;
+        
+        expect(systemPrompt).toContain('time estimate');
+      });
+
+      it('should request time estimates in user prompt', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Complete the quarterly report');
+        const userPrompt = prompt.userPrompt;
+        
+        expect(userPrompt).toContain('time');
+      });
+
+      it('should include supported time formats in prompt guidance', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Review document');
+        const systemPrompt = prompt.systemPrompt;
+        
+        const timeFormats = ['#5m', '#10m', '#15m', '#30m', '#45m', '#1h', '#2h', '#3h', '#4h'];
+        let foundTimeFormats = 0;
+        
+        timeFormats.forEach(format => {
+          if (systemPrompt.includes(format)) {
+            foundTimeFormats++;
+          }
+        });
+        
+        expect(foundTimeFormats).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Time Context Analysis', () => {
+      it('should provide time estimation guidance for quick tasks', () => {
+        const quickTasks = [
+          'Send quick email to client',
+          'Make brief phone call',
+          'File expense report'
+        ];
+        
+        quickTasks.forEach(task => {
+          const prompt = GTDPromptGenerator.generatePrompt(task);
+          expect(prompt.systemPrompt).toContain('time');
+        });
+      });
+
+      it('should provide time estimation guidance for longer tasks', () => {
+        const longerTasks = [
+          'Prepare quarterly presentation with charts and analysis',
+          'Conduct comprehensive code review of the entire module',
+          'Write detailed project proposal with budget breakdown'
+        ];
+        
+        longerTasks.forEach(task => {
+          const prompt = GTDPromptGenerator.generatePrompt(task);
+          expect(prompt.systemPrompt).toContain('time');
+        });
+      });
+
+      it('should include time estimation in JSON response format example', () => {
+        const prompt = GTDPromptGenerator.generatePrompt('Test task');
+        const systemPrompt = prompt.systemPrompt;
+        
+        expect(systemPrompt).toContain('time_estimate');
+      });
     });
   });
 
   describe('Context Suggestions', () => {
-    it('should suggest @calls for phone-related actions', () => {
+    it('should suggest @phone for phone-related actions', () => {
       const contexts = GTDPromptGenerator.getSuggestedContexts('Call John about the meeting');
-      expect(contexts).toContain('@calls');
+      expect(contexts).toContain('@phone');
     });
 
     it('should suggest @computer for email actions', () => {
@@ -251,7 +441,7 @@ describe('GTDPromptGenerator', () => {
 
     it('should suggest multiple contexts when applicable', () => {
       const contexts = GTDPromptGenerator.getSuggestedContexts('Call client and then email the proposal');
-      expect(contexts).toContain('@calls');
+      expect(contexts).toContain('@phone');
       expect(contexts).toContain('@computer');
     });
 

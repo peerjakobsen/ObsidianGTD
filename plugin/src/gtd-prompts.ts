@@ -27,16 +27,31 @@ Key GTD principles to follow:
 2. Each action should be clear and contextual - start with a verb
 3. Identify what project/outcome each action relates to
 4. Categorize items as: Next Actions, Waiting For, or Someday/Maybe
-5. Add appropriate contexts (calls, errands, computer, etc.)
+5. Add appropriate contexts based on where/how the action can be performed
+6. Estimate realistic time requirements for each action
+
+CONTEXT ANALYSIS: Choose the most appropriate context from these options:
+- @computer: For tasks requiring a computer (email, research, writing, online work)
+- @phone: For tasks requiring phone calls or voice communication
+- @errands: For tasks requiring going out (shopping, appointments, pickups)
+- @home: For tasks that must be done at home (household tasks, personal projects)
+- @office: For tasks requiring workplace resources or presence (meetings, presentations, office equipment)
+- @anywhere: For tasks that can be done in any location (reading, reviewing, thinking)
+
+TIME ESTIMATION: Provide realistic time estimates using these formats:
+Quick tasks: #5m, #10m, #15m
+Medium tasks: #30m, #45m, #1h
+Longer tasks: #2h, #3h, #4h
 
 Response format: Return a JSON array of actions with the following structure:
 [
   {
     "type": "next_action|waiting_for|someday_maybe",
     "action": "Specific action description starting with verb",
-    "context": "@calls|@errands|@computer|@office|@home|@online|@waiting",
+    "context": "@computer|@phone|@errands|@home|@office|@anywhere",
     "project": "Related project name (if applicable)",
     "due_date": "YYYY-MM-DD (if applicable)",
+    "time_estimate": "#5m|#10m|#15m|#30m|#45m|#1h|#2h|#3h|#4h",
     "tags": ["#tag1", "#tag2"]
   }
 ]
@@ -44,6 +59,8 @@ Response format: Return a JSON array of actions with the following structure:
 Important guidelines:
 - Be specific: "Call" not "Contact", "Draft" not "Work on"
 - Include context clues: phone numbers, email addresses, specific deliverables
+- Choose contexts based on the actual requirements of the action
+- Estimate time based on task complexity and your experience
 - If something is unclear or needs more information, create a next action to clarify it
 - Break down large or vague items into smaller, concrete actions
 - Use authentic GTD language and categories`;
@@ -139,10 +156,24 @@ Important guidelines:
 Break this down into specific, actionable next actions. For each action, determine:
 - What exactly needs to be done (specific physical action starting with a verb)
 - What category it belongs to (next_action, waiting_for, someday_maybe)  
-- What context is needed (@calls, @errands, @computer, @office, @home, etc.)
+- What context is needed (@computer, @phone, @errands, @home, @office, @anywhere)
+- How much time it will likely take (#5m, #10m, #15m, #30m, #45m, #1h, #2h, #3h, #4h)
 - What project or outcome it relates to
 - Any due dates or scheduling needed
 - Relevant tags for organization
+
+CONTEXT GUIDANCE: Choose contexts based on where/how the action must be performed:
+- Use @phone for calls and voice communication
+- Use @computer for digital work (email, research, writing)
+- Use @errands for tasks requiring going out
+- Use @home for household or personal tasks done at home
+- Use @office for workplace-specific tasks
+- Use @anywhere for location-independent tasks (reading, thinking)
+
+TIME ESTIMATION GUIDANCE: Be realistic about time requirements:
+- Simple tasks like "send quick email" = #5m to #15m
+- Moderate tasks like "write proposal outline" = #30m to #1h  
+- Complex tasks like "prepare detailed presentation" = #2h to #4h
 
 ${contextualGuidance}
 
@@ -184,10 +215,10 @@ Return the results as a valid JSON array following the specified format.`;
       return { isValid: false, error: 'Input text cannot be empty or only whitespace' };
     }
 
-    if (trimmedText.length > 10000) {
+    if (trimmedText.length > 50000) {
       return { 
         isValid: false, 
-        error: `Input text is too long (${trimmedText.length} characters). Maximum allowed is 10,000 characters.` 
+        error: `Input text is too long (${trimmedText.length} characters). Maximum allowed is 50,000 characters.` 
       };
     }
 
@@ -203,25 +234,42 @@ Return the results as a valid JSON array following the specified format.`;
   static getSuggestedContexts(text: string): string[] {
     const contexts = [];
 
-    if (/\b(call|phone|dial)\b/i.test(text)) {
-      contexts.push('@calls');
+    // Phone-related actions
+    if (/\b(call|phone|dial|ring|speak with|talk to.*phone)\b/i.test(text)) {
+      contexts.push('@phone');
     }
-    if (/\b(email|write|send|reply|respond)\b/i.test(text)) {
+    
+    // Computer-based actions
+    if (/\b(email|write|send|reply|respond|research|look up|type|draft|online|website|blog|code|programming)\b/i.test(text)) {
       contexts.push('@computer');
     }
-    if (/\b(buy|purchase|shop|store)\b/i.test(text)) {
+    
+    // Errands (going out)
+    if (/\b(buy|purchase|shop|store|pick up|drop off|appointment|bank|post office|grocery)\b/i.test(text)) {
       contexts.push('@errands');
     }
-    if (/\b(meeting|discuss|talk to|see)\b/i.test(text)) {
+    
+    // Home-specific tasks
+    if (/\b(home|house|kitchen|garage|garden|family|personal|household|clean|repair.*home|fix.*home)\b/i.test(text)) {
+      contexts.push('@home');
+    }
+    
+    // Office/workplace tasks
+    if (/\b(meeting|office|workplace|conference|presentation|team|colleague|standup|office.*equipment|print|conference.*room)\b/i.test(text)) {
       contexts.push('@office');
     }
-    if (/\b(read|review|research|look up)\b/i.test(text)) {
-      contexts.push('@computer');
+    
+    // Location-independent tasks
+    if (/\b(read|review|think|consider|plan|brainstorm|reflect|study|analyze)\b/i.test(text)) {
+      contexts.push('@anywhere');
     }
+    
+    // Waiting-related (legacy support)
     if (/\b(waiting|pending|expect|anticipate)\b/i.test(text)) {
       contexts.push('@waiting');
     }
 
-    return contexts.length > 0 ? contexts : ['@computer']; // Default context
+    // Return found contexts, or default to @computer if none found
+    return contexts.length > 0 ? contexts : ['@computer'];
   }
 }
