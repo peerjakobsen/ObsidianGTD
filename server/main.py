@@ -144,14 +144,19 @@ async def process(request: ProcessRequest):
     logger.info(f"Process endpoint accessed with task: {request.task}")
 
     try:
-        # Create a contextual prompt based on the task type
-        task_prompt = f"""Task: {request.task}
+        # For GTD clarification, pass content directly; for other tasks, wrap it
+        if request.task == "gtd-clarification":
+            # Pass the content directly - it's already a complete GTD prompt from the client
+            prompt_to_send = request.content
+        else:
+            # Create a contextual prompt based on the task type for other tasks
+            prompt_to_send = f"""Task: {request.task}
 Content to process: {request.content}
 
 Please process the above content according to the specified task."""
 
         # Call Bedrock API via bedrock_client
-        bedrock_response = await bedrock_client.process_request(task_prompt)
+        bedrock_response = await bedrock_client.process_request(prompt_to_send)
         
         processing_time_ms = int((time.time() - start_time) * 1000)
 

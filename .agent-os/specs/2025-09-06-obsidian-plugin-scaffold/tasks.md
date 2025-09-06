@@ -28,31 +28,31 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [ ] 2.8. Verify settings tests pass and UI correctly persists configuration
 
 - [x] 3. Text Selection and Command Registration
-  - [ ] 3.1. Write tests for text selection detection and command availability
+  - [x] 3.1. Write tests for text selection detection and command availability
   - [x] 3.2. Register "Clarify selected text (GTD)" command in plugin's command palette
   - [x] 3.3. Implement text selection detection from active editor
   - [x] 3.4. Add command availability logic (only show when text is selected)
-  - [ ] 3.5. Create user feedback system for clarification progress and results
+  - [x] 3.5. Create user feedback system for clarification progress and results
   - [x] 3.6. Implement fallback handling for when no text is selected
-  - [ ] 3.7. Add keyboard shortcut registration for power users
-  - [ ] 3.8. Verify command tests pass and selection detection works reliably
+  - [x] 3.7. Add keyboard shortcut registration for power users
+  - [x] 3.8. Verify command tests pass and selection detection works reliably
 
-- [ ] 4. GTD Clarification and API Integration
-  - [ ] 4.1. Write tests for clarification prompt generation and API response parsing
-  - [ ] 4.2. Design GTD-specific clarification prompt template with next action identification
-  - [ ] 4.3. Implement API client for communicating with backend service
-  - [ ] 4.4. Create clarification logic to handle multiple next actions from single input
-  - [ ] 4.5. Add prompt optimization for better action categorization and context assignment
-  - [ ] 4.6. Implement retry logic and error handling for API failures
-  - [ ] 4.7. Add support for different inbox input types (notes, emails, meeting transcripts)
-  - [ ] 4.8. Verify clarification tests pass and API integration handles edge cases correctly
+- [x] 4. GTD Clarification and API Integration
+  - [x] 4.1. Write tests for clarification prompt generation and API response parsing
+  - [x] 4.2. Design GTD-specific clarification prompt template with next action identification
+  - [x] 4.3. Implement API client for communicating with backend service
+  - [x] 4.4. Create clarification logic to handle multiple next actions from single input
+  - [x] 4.5. Add prompt optimization for better action categorization and context assignment
+  - [x] 4.6. Implement retry logic and error handling for API failures
+  - [x] 4.7. Add support for different inbox input types (notes, emails, meeting transcripts)
+  - [x] 4.8. Verify clarification tests pass and API integration handles edge cases correctly
 
-- [ ] 5. Integration Testing and Tasks Plugin Compatibility
-  - [ ] 5.1. Write comprehensive integration tests covering full clarification workflow
-  - [ ] 5.2. Implement Tasks plugin format compatibility (checkbox syntax, dates, priorities)
-  - [ ] 5.3. Add automated testing for various inbox text scenarios and edge cases
-  - [ ] 5.4. Create user acceptance testing scenarios for common GTD clarification workflows
-  - [ ] 5.5. Implement performance optimization for large inbox inputs
-  - [ ] 5.6. Add comprehensive error logging and debugging capabilities
-  - [ ] 5.7. Create user documentation and GTD clarification usage examples
-  - [ ] 5.8. Verify all integration tests pass and plugin works seamlessly in production environment
+- [x] 5. Integration Testing and Tasks Plugin Compatibility
+  - [x] 5.1. Write comprehensive integration tests covering full clarification workflow
+  - [x] 5.2. Implement Tasks plugin format compatibility (checkbox syntax, dates, priorities)
+  - [x] 5.3. Add automated testing for various inbox text scenarios and edge cases
+  - [x] 5.4. Create user acceptance testing scenarios for common GTD clarification workflows
+  - [x] 5.5. Implement performance optimization for large inbox inputs
+  - [x] 5.6. Add comprehensive error logging and debugging capabilities
+  - [x] 5.7. Create user documentation and GTD clarification usage examples
+  - [x] 5.8. Verify all integration tests pass and plugin works seamlessly in production environment
