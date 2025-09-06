@@ -4,8 +4,8 @@
 .env.production
 
 # Python
-server/__pycache__/
-server/*.py[cod]
+**/__pycache__/
+*.py[cod]
 server/*$py.class
 server/*.so
 server/.Python
