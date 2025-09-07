@@ -133,7 +133,14 @@ export class GTDAssistantView extends ItemView {
         return;
       }
 
-      const filteredResult = { ...result, actions: filteredActions } as any;
+      // Ensure each action carries the #task tag for Tasks plugin parity with clarify workflow
+      const augmentedActions = (filteredActions || []).map((a: any) => {
+        const tags = Array.isArray(a?.tags) ? a.tags : [];
+        const hasTask = tags.some((t: string) => (t || '').toLowerCase() === '#task');
+        return { ...a, tags: hasTask ? tags : [...tags, '#task'] };
+      });
+
+      const filteredResult = { ...result, actions: augmentedActions } as any;
       const lines = this.plugin.clarificationService.convertToTasksFormat(filteredResult);
 
       // Insert at cursor in markdown editor: prefer active view, else fall back to last markdown leaf

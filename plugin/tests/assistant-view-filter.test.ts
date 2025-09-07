@@ -78,6 +78,23 @@ describe('GTDAssistantView - note-context filtering', () => {
     expect(inserted).not.toContain('Bob to do B');
   });
 
+  it('adds #task tag when inserting from sidebar even if model omitted it', async () => {
+    // Return actions without #task tag
+    mockConversation.prepareForInsert = jest.fn().mockResolvedValue({
+      success: true,
+      actions: [ { type: 'next_action', action: 'Do A', tags: [] } ],
+      original_text: '',
+      processing_time_ms: 0,
+    });
+
+    (mockView as any).file = { name: 'next-actions.md' };
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+    const inserted = mockEditor.replaceRange.mock.calls[0][0] as string;
+    expect(inserted).toContain('#task');
+  });
+
   it('inserts all items when note context is unknown', async () => {
     (mockView as any).file = { name: 'random.md' };
     const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
