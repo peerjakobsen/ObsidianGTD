@@ -108,7 +108,8 @@ export class GTDAssistantView extends ItemView {
   async handleInsertTasks(): Promise<void> {
     this.setSending(true, 'Preparing tasks for insert…');
     try {
-      const result = await this.conversation.prepareForInsert();
+      // Parse the most recent assistant reply locally; no network/Bedrock roundtrip
+      const result = await this.conversation.prepareForInsert({ roundtrip: false });
 
       // Determine target markdown view (active or last open) first
       const ws: any = this.plugin.app?.workspace;

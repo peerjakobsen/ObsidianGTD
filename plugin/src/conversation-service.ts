@@ -130,9 +130,12 @@ export class GTDConversationService {
    * Ensure latest assistant output is a strict JSON array. If strict mode is on,
    * append a final instruction asking for JSON-only output, then parse and return actions.
    */
-  async prepareForInsert(): Promise<ClarificationResult> {
-    // If strict mode, request JSON-only output before parsing
-    if (this.options.strictJsonMode) {
+  async prepareForInsert(opts?: { roundtrip?: boolean }): Promise<ClarificationResult> {
+    // By default we used to send a final instruction to force JSON-only output.
+    // That unnecessarily requires network credentials on Insert. Allow callers
+    // to skip the roundtrip and just parse the latest assistant message.
+    const doRoundtrip = opts?.roundtrip ?? false;
+    if (doRoundtrip) {
       const instruction = 'Now output only a JSON array of tasks as specified earlier, with no prose, no code fences, and no explanations.';
       await this.send(instruction);
     }

@@ -39,7 +39,7 @@ describe('GTDConversationService', () => {
     expect((lastCallArgs.messages[lastCallArgs.messages.length - 1] as any).content).toBe('Make due Friday');
   });
 
-  it('prepareForInsert requests strict JSON and parses actions', async () => {
+  it('prepareForInsert can parse latest assistant message without extra roundtrip', async () => {
     // Sequence:
     // 1) send() initial -> assistant returns non-JSON placeholder
     converseMock.mockResolvedValueOnce({
@@ -52,24 +52,15 @@ describe('GTDConversationService', () => {
     svc.startFromSelection('Plan project kickoff');
     await svc.send('Group by context');
 
-    // 2) prepareForInsert -> service sends a JSON-only instruction, LLM replies with fenced JSON
-    const fenced = '```json\n[\n {"type":"next_action","action":"Email team about kickoff","context":"@computer","tags":["#task"]}\n]\n```';
-    converseMock.mockResolvedValueOnce({
-      result: fenced,
-      status: 'success',
-      metadata: { model: 'm', tokens_used: 8, processing_time_ms: 15 },
-    });
+    // Simulate that the latest assistant message already contains JSON we can parse
+    (svc as any).thread.push({ role: 'assistant', content: '[{"type":"next_action","action":"Email team about kickoff","context":"@computer","tags":["#task"]}]' });
 
-    const result = await svc.prepareForInsert();
+    const result = await svc.prepareForInsert({ roundtrip: false });
     expect(result.success).toBe(true);
     expect(result.actions.length).toBe(1);
     expect(result.actions[0].action).toContain('Email team');
-
-    // Verify the last send included the strict JSON instruction
-    const lastCallArgs = converseMock.mock.calls[converseMock.mock.calls.length - 1][0];
-    const lastUser = lastCallArgs.messages[lastCallArgs.messages.length - 1];
-    expect(lastUser.role).toBe('user');
-    expect((lastUser as any).content).toEqual(expect.stringContaining('JSON array'));
+    // No additional roundtrip should have been triggered
+    expect(converseMock).toHaveBeenCalledTimes(1);
   });
 
   it('prepareForInsert returns fallback action on parse errors', async () => {
@@ -84,14 +75,9 @@ describe('GTDConversationService', () => {
     svc.startFromSelection('Draft agenda for meeting');
     await svc.send('Keep it short');
 
-    // Insert step attempts strict JSON, but returns garbage
-    converseMock.mockResolvedValueOnce({
-      result: 'not json at all',
-      status: 'success',
-      metadata: { model: 'm', tokens_used: 4, processing_time_ms: 6 },
-    });
-
-    const out = await svc.prepareForInsert();
+    // Latest assistant content is not JSON; prepareForInsert should return a fallback
+    (svc as any).thread.push({ role: 'assistant', content: 'not json at all' });
+    const out = await svc.prepareForInsert({ roundtrip: false });
     expect(out.success).toBe(false);
     expect(out.actions.length).toBe(1);
     expect(out.actions[0].tags).toEqual(expect.arrayContaining(['#manual-review', '#parse-error']));
