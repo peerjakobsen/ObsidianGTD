@@ -56,6 +56,7 @@ export class GTDAssistantView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
+    this.injectStyles();
     this.container = document.createElement('div');
     this.container.className = 'gtd-assistant-view';
     const host: HTMLElement = (this as any).containerEl ?? document.body;
@@ -320,6 +321,27 @@ export class GTDAssistantView extends ItemView {
     this.sendBtn.addEventListener('click', () => this.handleSend());
     this.insertBtn.addEventListener('click', () => this.handleInsertTasks());
     this.updateButtonStates();
+  }
+
+  // Inject minimal CSS once to ensure message/input boxes render even when styles.css isn't bundled
+  private injectStyles(): void {
+    if (document.getElementById('gtd-assistant-inline-styles')) return;
+    const css = `
+    .gtd-assistant-view{padding:8px 16px 12px 16px}
+    .gtd-msg{border:1px solid var(--background-modifier-border);border-radius:8px;padding:10px 12px;background:var(--background-primary);margin-bottom:8px}
+    .gtd-msg-user{background:var(--background-primary)}
+    .gtd-msg-assistant{background:var(--background-secondary)}
+    .gtd-msg-role{font-size:12px;font-weight:600;opacity:.8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em}
+    .gtd-msg-content{white-space:pre-wrap;line-height:1.5}
+    .gtd-msg-preview{margin-bottom:6px}
+    .gtd-toggle-raw{font-size:12px}
+    .gtd-assistant-input{border:1px solid var(--background-modifier-border);border-radius:8px;background:var(--background-secondary);padding:8px}
+    .gtd-assistant-input textarea{border:none;background:transparent;padding:8px}
+    `;
+    const style = document.createElement('style');
+    style.id = 'gtd-assistant-inline-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
   }
 
 
