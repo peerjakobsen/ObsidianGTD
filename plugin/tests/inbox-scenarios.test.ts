@@ -3,8 +3,7 @@ import { GTDClarificationService } from '../src/clarification-service';
 import { BedrockClient } from '../src/bedrock-client';
 import { GTDSettings } from '../src/settings';
 
-// Mock the Bedrock client
-jest.mock('../src/bedrock-client');
+// No need to mock the Bedrock client - we'll pass the mock directly
 
 describe('Inbox Scenarios - Automated Testing', () => {
   let clarificationService: GTDClarificationService;
@@ -12,12 +11,10 @@ describe('Inbox Scenarios - Automated Testing', () => {
   let mockSettings: GTDSettings;
 
   beforeEach(() => {
+    // Create mock Bedrock client (only include methods that actually exist)
     mockBedrockClient = {
       generateText: jest.fn(),
-      clarifyText: jest.fn(),
-      testConnection: jest.fn(),
-      updateConfig: jest.fn(),
-      getConfig: jest.fn()
+      testConnection: jest.fn()
     } as jest.Mocked<BedrockClient>;
 
     mockSettings = {
@@ -175,7 +172,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 30 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(spamEmail, { inputType: 'email' });
@@ -234,7 +231,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 180 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(brainstormNotes, { inputType: 'general' });
@@ -263,7 +260,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 80 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(abstractNotes, { inputType: 'note' });
@@ -292,7 +289,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 500 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(longText);
@@ -345,7 +342,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 140 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(specialText);
@@ -367,7 +364,7 @@ describe('Inbox Scenarios - Automated Testing', () => {
         metadata: { model: 'claude-3-sonnet', tokens_used: 50 }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(malformedApiResponse);
+      mockBedrockClient.generateText.mockResolvedValue(malformedApiResponse);
 
       // Act
       const result = await clarificationService.clarifyInboxText(normalText);

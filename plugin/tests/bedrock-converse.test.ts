@@ -11,8 +11,6 @@ jest.mock('@aws-sdk/client-bedrock-runtime', () => ({
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import {
   createBedrockServiceClient,
-  BedrockClient,
-  BedrockClientError,
 } from '../src/bedrock-client';
 
 describe('BedrockClient.converse', () => {
@@ -112,7 +110,7 @@ describe('BedrockClient.converse', () => {
     credError.name = 'CredentialsProviderError';
     mockSend.mockRejectedValueOnce(credError);
 
-    (global as any).fetch = jest.fn().mockResolvedValue({
+    (global as any).fetch = (jest.fn() as jest.MockedFunction<any>).mockResolvedValue({
       ok: true,
       json: async () => ({
         output: { message: { content: [{ text: 'http fallback ok' }] } },
@@ -141,7 +139,8 @@ describe('BedrockClient.converse', () => {
       })
     );
 
-    const body = JSON.parse(((global as any).fetch as jest.Mock).mock.calls[0][1].body);
+    const fetchMock = (global as any).fetch as jest.Mock;
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as any).body);
     expect(body.modelId).toBe('us.anthropic.claude-sonnet-4-20250514-v1:0');
     expect(body.system).toEqual([{ text: 'system a' }, { text: 'system b' }]);
     expect(body.messages).toEqual([

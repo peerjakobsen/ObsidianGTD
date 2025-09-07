@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { GTDClarificationService, GTDActionType, ClarificationResult, createClarificationService } from '../src/clarification-service';
+import { GTDClarificationService, ClarificationResult, createClarificationService } from '../src/clarification-service';
 import { BedrockClient } from '../src/bedrock-client';
 import { GTDSettings } from '../src/settings';
 
-// Mock the dependencies
-jest.mock('../src/bedrock-client');
+// Mock the dependencies - only mock gtd-prompts since we'll pass BedrockClient directly
 jest.mock('../src/gtd-prompts');
 
 describe('GTDClarificationService', () => {
@@ -21,13 +20,14 @@ describe('GTDClarificationService', () => {
       timeout: 30000
     };
 
-    // Create mock Bedrock client
+    // Create mock Bedrock client (include methods needed by tests)
     mockBedrockClient = {
       generateText: jest.fn(),
-      clarifyText: jest.fn(),
       testConnection: jest.fn(),
       updateConfig: jest.fn(),
-      getConfig: jest.fn()
+      getConfig: jest.fn(),
+      converse: jest.fn(),
+      updateRetryConfig: jest.fn()
     } as any;
 
     // Mock the GTDPromptGenerator methods
@@ -77,7 +77,7 @@ describe('GTDClarificationService', () => {
             tags: ['#communication']
           }
         ]),
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'anthropic.claude-3-sonnet-20240229-v1:0',
           tokens_used: 250,
@@ -131,7 +131,7 @@ describe('GTDClarificationService', () => {
             context: 'computer'
           }
         ]),
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'test-model',
           tokens_used: 150,
@@ -178,7 +178,7 @@ describe('GTDClarificationService', () => {
             tags: ['urgent', '#priority'] // Mixed tag formats
           }
         ]),
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'test-model',
           tokens_used: 50,
@@ -253,7 +253,7 @@ describe('GTDClarificationService', () => {
 
       const mockBedrockResponse = {
         result: 'Invalid JSON {broken}',
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'test-model',
           tokens_used: 50,
@@ -287,7 +287,7 @@ describe('GTDClarificationService', () => {
 
       const mockBedrockResponse = {
         result: JSON.stringify({ message: 'Not an array' }),
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'test-model',
           tokens_used: 50,
@@ -434,7 +434,7 @@ describe('GTDClarificationService', () => {
 
       mockBedrockClient.generateText.mockResolvedValue({
         result: '[]',
-        status: 'success',
+        status: 'success' as const,
         metadata: {
           model: 'test-model',
           tokens_used: 0,
@@ -471,12 +471,14 @@ describe('GTDClarificationService - Metadata Extraction', () => {
       timeout: 30000
     };
 
-    // Create mock Bedrock client
+    // Create mock Bedrock client (include methods needed by tests)
     mockBedrockClient = {
-      clarifyText: jest.fn(),
+      generateText: jest.fn(),
       testConnection: jest.fn(),
       updateConfig: jest.fn(),
-      getConfig: jest.fn()
+      getConfig: jest.fn(),
+      converse: jest.fn(),
+      updateRetryConfig: jest.fn()
     } as any;
 
     // Mock the GTDPromptGenerator methods
@@ -552,7 +554,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#review']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 300,
@@ -606,7 +608,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#test']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 100,
@@ -650,7 +652,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#test']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 50,
@@ -705,7 +707,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#long']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 200,
@@ -763,7 +765,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#test']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 150,
@@ -807,7 +809,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#test']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 75,
@@ -846,7 +848,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#test']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 60,
@@ -896,7 +898,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#waiting', '#legal']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 180,
@@ -960,7 +962,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
               tags: ['#minimal']
             }
           ]),
-          status: 'success',
+          status: 'success' as const,
           metadata: {
             model: 'test-model',
             tokens_used: 120,
