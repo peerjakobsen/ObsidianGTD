@@ -1,4 +1,6 @@
 import { ItemView, WorkspaceLeaf, Notice, MarkdownView } from 'obsidian';
+// Allow using CommonJS require without bringing in Node types for full project
+declare const require: any;
 import type ObsidianGTDPlugin from './main';
 import { createConversationService, GTDConversationService } from './conversation-service';
 import type { PromptKind } from './gtd-prompts';
