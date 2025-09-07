@@ -21,7 +21,34 @@
 - Obsidian Tasks plugin installed
 - Node.js development environment
 
-## Phase 2: Intelligent Processing
+## Phase 2: Direct AWS Integration
+
+**Goal:** Eliminate FastAPI server and call AWS Bedrock directly from plugin
+**Success Criteria:** Plugin works without running local server, same functionality preserved
+
+### Features
+
+- [ ] AWS SDK integration with @aws-sdk/client-bedrock-runtime `M`
+- [ ] Direct Bedrock client service using AWS SDK HTTP handler `L`
+- [ ] AWS bearer token configuration in plugin settings `S`
+- [ ] Port server bedrock_client.py logic to TypeScript `M`
+- [ ] Connection testing for direct AWS access `S`
+- [ ] Remove server dependency from documentation `S`
+
+### Dependencies
+
+- AWS Bedrock bearer token access (no access keys)
+- Phase 1 completion and validation
+- Bundle size optimization testing
+
+### Benefits
+
+- Simpler deployment (no server required)
+- Faster response times (direct API calls)
+- Better user experience (no localhost setup)
+- Single codebase maintenance
+
+## Phase 3: Intelligent Processing
 
 **Goal:** Add advanced metadata detection and project association
 **Success Criteria:** Users report 90% satisfaction with clarified next action quality
@@ -37,10 +64,10 @@
 
 ### Dependencies
 
-- Phase 1 completion
-- User feedback on MVP features
+- Phase 2 completion
+- User feedback on direct integration
 
-## Phase 3: Weekly Review Assistant
+## Phase 4: Weekly Review Assistant
 
 **Goal:** Automate weekly review insights and system health analysis
 **Success Criteria:** 30% reduction in weekly review time, 100% stale project detection
