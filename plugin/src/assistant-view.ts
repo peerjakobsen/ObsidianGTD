@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, Notice, MarkdownView } from 'obsidian';
 import type ObsidianGTDPlugin from './main';
 import { createConversationService, GTDConversationService } from './conversation-service';
+import type { PromptKind } from './gtd-prompts';
 import { createBedrockServiceClient } from './bedrock-client';
 import { GTDLogger } from './logger';
 
@@ -15,6 +16,7 @@ export class GTDAssistantView extends ItemView {
   private didAutoSendInitial = false;
   private isSending = false;
   private lastError: string | null = null;
+  private selectedPrompt: PromptKind = 'clarify';
 
   // UI elements
   private container!: HTMLElement;
@@ -22,10 +24,13 @@ export class GTDAssistantView extends ItemView {
   private inputEl!: HTMLTextAreaElement;
   private sendBtn!: HTMLButtonElement;
   private insertBtn!: HTMLButtonElement;
-  private clearBtn!: HTMLButtonElement;
   private statusEl!: HTMLElement;
   private closeBtn!: HTMLButtonElement;
   private newChatBtn!: HTMLButtonElement;
+  private compactBtn!: HTMLButtonElement;
+  private compact = false;
+  private promptBar!: HTMLElement;
+  private promptSelect!: HTMLSelectElement;
 
   constructor(leaf: WorkspaceLeaf, plugin: ObsidianGTDPlugin, deps?: { conversationService?: GTDConversationService }) {
     super(leaf);
@@ -57,14 +62,10 @@ export class GTDAssistantView extends ItemView {
     this.render();
     try { this.inputEl?.focus(); } catch (e) { /* ignore */ }
 
-    // Preload selection and auto-send on first open
-    if (!this.didAutoSendInitial) {
-      this.didAutoSendInitial = true;
-      const selection = this.getCurrentSelection();
-      if (selection) {
-        // Treat initial selection as the first message
-        await this.handleSend(selection);
-      }
+    // Fill input with current selection if available
+    const selection = this.getCurrentSelection();
+    if (selection && this.inputEl) {
+      this.inputEl.value = selection;
     }
   }
 
@@ -83,7 +84,13 @@ export class GTDAssistantView extends ItemView {
     this.setSending(true, 'Sending…');
     this.lastError = null;
     try {
-      await this.conversation.send(message);
+      const thread = this.conversation.getThread();
+      if (!thread || thread.length === 0) {
+        // Seed with selected prompt and send immediately
+        await this.conversation.sendInitialWithPrompt(this.selectedPrompt, message, 'general');
+      } else {
+        await this.conversation.send(message);
+      }
       this.refreshMessages();
       if (!text && this.inputEl) this.inputEl.value = '';
       this.setStatus('Ready');
@@ -188,11 +195,11 @@ export class GTDAssistantView extends ItemView {
     return tags.some(t => (t || '').toLowerCase() === tag.toLowerCase());
   }
 
-  // Controller: Clear thread and UI
-  handleClear(): void {
+  // Controller: Start a new chat (reset thread and UI)
+  startNewChat(): void {
     this.conversation.resetThread();
     this.refreshMessages();
-    this.setStatus('Cleared');
+    this.setStatus('New chat started');
   }
 
   // ————— UI helpers —————
@@ -210,10 +217,25 @@ export class GTDAssistantView extends ItemView {
     this.newChatBtn = document.createElement('button');
     this.newChatBtn.textContent = 'New Chat';
     this.newChatBtn.className = 'gtd-toolbar-btn';
-    this.newChatBtn.addEventListener('click', () => { this.handleClear(); this.inputEl?.focus(); });
+    this.newChatBtn.addEventListener('click', () => { this.startNewChat(); this.inputEl?.focus(); });
+
+    // Compact mode toggle
+    this.compactBtn = document.createElement('button');
+    this.compactBtn.className = 'gtd-toolbar-btn';
+    this.compactBtn.textContent = 'Compact';
+    this.compactBtn.setAttribute('aria-pressed', String(this.compact));
+    this.compactBtn.title = 'Toggle compact layout';
+    this.compactBtn.addEventListener('click', () => {
+      this.compact = !this.compact;
+      this.compactBtn.setAttribute('aria-pressed', String(this.compact));
+      if (this.compact) this.container.classList.add('is-compact');
+      else this.container.classList.remove('is-compact');
+    });
     this.closeBtn = document.createElement('button');
-    this.closeBtn.textContent = 'Close';
-    this.closeBtn.className = 'gtd-toolbar-btn';
+    this.closeBtn.textContent = '×';
+    this.closeBtn.title = 'Close';
+    this.closeBtn.setAttribute('aria-label', 'Close');
+    this.closeBtn.className = 'gtd-toolbar-btn gtd-close-btn';
     this.closeBtn.addEventListener('click', () => {
       try {
         const ws: any = this.plugin?.app?.workspace;
@@ -225,11 +247,43 @@ export class GTDAssistantView extends ItemView {
       } catch (e) { /* ignore */ }
     });
     right.appendChild(this.newChatBtn);
+    right.appendChild(this.compactBtn);
     right.appendChild(this.closeBtn);
     bar.appendChild(title);
     bar.appendChild(right);
     header.appendChild(bar);
     this.container.appendChild(header);
+
+    // Prompt chooser bar (dropdown)
+    this.promptBar = document.createElement('div');
+    this.promptBar.className = 'gtd-prompt-chooser';
+    const promptLabel = document.createElement('span');
+    promptLabel.textContent = 'What do you want to do?';
+    promptLabel.className = 'gtd-prompt-label';
+    this.promptBar.appendChild(promptLabel);
+
+    this.promptSelect = document.createElement('select');
+    this.promptSelect.className = 'gtd-select';
+    const options: Array<{ value: PromptKind, label: string }> = [
+      { value: 'clarify', label: 'Clarify' },
+      { value: 'weekly_review_next_actions', label: 'Review Next Actions' },
+      { value: 'weekly_review_waiting_for', label: 'Review Waiting For' },
+      { value: 'weekly_review_someday_maybe', label: 'Review Someday/Maybe' },
+    ];
+    for (const opt of options) {
+      const o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      if (opt.value === this.selectedPrompt) o.selected = true;
+      this.promptSelect.appendChild(o);
+    }
+    this.promptSelect.addEventListener('change', () => {
+      const val = (this.promptSelect.value as PromptKind) || 'clarify';
+      this.selectedPrompt = val;
+    });
+    this.promptBar.appendChild(this.promptSelect);
+
+    this.container.appendChild(this.promptBar);
 
     this.messagesEl = document.createElement('div');
     this.messagesEl.className = 'gtd-assistant-messages';
@@ -261,10 +315,6 @@ export class GTDAssistantView extends ItemView {
     this.insertBtn.textContent = 'Insert Tasks';
     btnRow.appendChild(this.insertBtn);
 
-    this.clearBtn = document.createElement('button');
-    this.clearBtn.textContent = 'Clear';
-    btnRow.appendChild(this.clearBtn);
-
     this.statusEl = document.createElement('div');
     this.statusEl.className = 'gtd-assistant-status';
     this.statusEl.textContent = 'Ready';
@@ -272,9 +322,9 @@ export class GTDAssistantView extends ItemView {
 
     this.sendBtn.addEventListener('click', () => this.handleSend());
     this.insertBtn.addEventListener('click', () => this.handleInsertTasks());
-    this.clearBtn.addEventListener('click', () => this.handleClear());
     this.updateButtonStates();
   }
+
 
   private refreshMessages(): void {
     if (!this.messagesEl) return;
@@ -408,7 +458,6 @@ export class GTDAssistantView extends ItemView {
     this.isSending = sending;
     if (this.sendBtn) this.sendBtn.disabled = sending;
     this.updateButtonStates();
-    if (this.clearBtn) this.clearBtn.disabled = false; // Clear stays enabled
     if (sending && statusWhenSending) this.setStatus(statusWhenSending);
   }
 

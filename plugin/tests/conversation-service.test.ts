@@ -29,7 +29,8 @@ describe('GTDConversationService', () => {
     // Verify bedrock.converse called with system prompt and full thread
     expect(converseMock).toHaveBeenCalled();
     const lastCallArgs = converseMock.mock.calls[converseMock.mock.calls.length - 1][0];
-    expect(typeof lastCallArgs.system).toBe('string');
+    const sys = lastCallArgs.system as any;
+    expect(sys && (typeof sys === 'string' || Array.isArray(sys))).toBe(true);
     expect(lastCallArgs.messages.length).toBeGreaterThanOrEqual(2);
     expect(lastCallArgs.messages[0].role).toBe('user');
     // First user message should contain the selection text

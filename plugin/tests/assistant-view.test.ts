@@ -50,12 +50,16 @@ describe('GTDAssistantView - controller logic', () => {
     });
     const resetThreadMock = jest.fn<() => void>();
     const getThreadMock = jest.fn<() => any[]>().mockReturnValue([]);
+    const startWithPromptMock = jest.fn<() => void>();
+    const sendInitialWithPromptMock = jest.fn<() => Promise<string>>().mockResolvedValue('ok');
 
     mockConversation = {
       send: sendMock,
       prepareForInsert: prepareForInsertMock,
       resetThread: resetThreadMock,
       getThread: getThreadMock,
+      startWithPrompt: startWithPromptMock,
+      sendInitialWithPrompt: sendInitialWithPromptMock,
     };
 
     leaf = new (WorkspaceLeaf as any)();
@@ -63,10 +67,11 @@ describe('GTDAssistantView - controller logic', () => {
     (leaf as any).detach = jest.fn();
   });
 
-  it('disables Send while sending and calls conversation.send', async () => {
+  it('disables Send while sending and calls conversation.send when thread started', async () => {
     // Arrange: make send async to observe disabled state
     let resolveSend: any;
     mockConversation.send = jest.fn(() => new Promise(res => { resolveSend = res; }));
+    mockConversation.getThread = jest.fn().mockReturnValue([{ role: 'user', content: 'Hi' }]);
 
     const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
     await view.onOpen();
@@ -99,18 +104,55 @@ describe('GTDAssistantView - controller logic', () => {
     expect(editor.replaceRange).toHaveBeenCalledWith('\n- [ ] Task 1\n', { line: 0, ch: 0 });
   });
 
-  it('clears the thread and UI on Clear', async () => {
+  it('resets the thread and UI when starting a new chat', async () => {
     const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
     await view.onOpen();
-    view.handleClear();
+    (view as any).startNewChat();
     expect(mockConversation.resetThread).toHaveBeenCalled();
   });
 
-  it('auto-sends selection on first open', async () => {
+  it('prefills input with selection and seeds prompt on first send (Clarify default)', async () => {
     (mockPlugin.app.workspace.getActiveViewOfType() as any).editor.getSelection = jest.fn().mockReturnValue('Process this');
     const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
     await view.onOpen();
-    expect(mockConversation.send).toHaveBeenCalledWith('Process this');
+    // Input is prefilled with selection
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Process this');
+    // No auto send
+    expect(mockConversation.send).not.toHaveBeenCalled();
+    expect(mockConversation.sendInitialWithPrompt).not.toHaveBeenCalled();
+
+    // Click Send to seed with Clarify
+    const sendBtn = Array.from(document.body.querySelectorAll('button')).find(b => b.textContent === 'Send') as HTMLButtonElement;
+    await (view as any).handleSend();
+    expect(mockConversation.sendInitialWithPrompt).toHaveBeenCalledWith('clarify', 'Process this', 'general');
+    expect(mockConversation.send).not.toHaveBeenCalled();
+  });
+
+  it('uses selected dropdown prompt kind on first send', async () => {
+    (mockPlugin.app.workspace.getActiveViewOfType() as any).editor.getSelection = jest.fn().mockReturnValue('Review list');
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    const select = document.body.querySelector('select') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+
+    // Choose Waiting For
+    select.value = 'weekly_review_waiting_for';
+    select.dispatchEvent(new Event('change'));
+    await (view as any).handleSend();
+    expect(mockConversation.sendInitialWithPrompt).toHaveBeenCalledWith('weekly_review_waiting_for', 'Review list', 'general');
+
+    // Reset mocks and choose Someday/Maybe
+    (mockConversation.sendInitialWithPrompt as jest.Mock).mockClear();
+    (mockPlugin.app.workspace.getActiveViewOfType() as any).editor.getSelection = jest.fn().mockReturnValue('Maybe list');
+    await view.onOpen(); // rerender
+    const allSelects = Array.from(document.body.querySelectorAll('select')) as HTMLSelectElement[];
+    const select2 = allSelects[allSelects.length - 1];
+    select2.value = 'weekly_review_someday_maybe';
+    select2.dispatchEvent(new Event('change'));
+    await (view as any).handleSend('Maybe list');
+    expect(mockConversation.sendInitialWithPrompt).toHaveBeenCalledWith('weekly_review_someday_maybe', 'Maybe list', 'general');
   });
 
   it('renders a tasks preview for assistant JSON and toggles raw view', async () => {
@@ -149,7 +191,7 @@ describe('GTDAssistantView - controller logic', () => {
     newChatBtn.click();
     expect(mockConversation.resetThread).toHaveBeenCalled();
 
-    const closeBtn = Array.from(document.body.querySelectorAll('.gtd-toolbar-right .gtd-toolbar-btn')).find(b => b.textContent === 'Close') as HTMLButtonElement;
+    const closeBtn = document.body.querySelector('.gtd-toolbar-right .gtd-close-btn') as HTMLButtonElement;
     expect(closeBtn).toBeTruthy();
     closeBtn.click();
     expect(mockPlugin.app.workspace.detachLeavesOfType).toHaveBeenCalledWith('gtd-assistant-view');

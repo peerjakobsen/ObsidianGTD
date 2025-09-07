@@ -1,5 +1,5 @@
 import { BedrockClient, BedrockResponse, ConverseMessage, ConverseParams } from './bedrock-client';
-import { GTDPromptGenerator } from './gtd-prompts';
+import { Clarify, generatePromptFor, PromptKind } from './gtd-prompts';
 import { GTDLogger } from './logger';
 import type { GTDActionType, ClarificationResult } from './clarification-service';
 
@@ -26,7 +26,7 @@ export class GTDConversationService {
   private logger = GTDLogger.getInstance();
   private options: Required<ConversationServiceOptions>;
 
-  private systemPrompt: string | undefined;
+  private systemPrompt: string | string[] | undefined;
   private thread: ConversationThreadMessage[] = [];
 
   constructor(bedrockClient: BedrockClient, options?: ConversationServiceOptions) {
@@ -57,9 +57,38 @@ export class GTDConversationService {
    * Initialize from current selection. Generates GTD system prompt and a contextual user prompt.
    */
   startFromSelection(selection: string, inputType?: 'note' | 'email' | 'meeting_notes' | 'general'): void {
-    const template = GTDPromptGenerator.generatePrompt(selection, inputType);
-    this.systemPrompt = template.systemPrompt;
+    const template = Clarify.generatePrompt(selection, inputType);
+    this.systemPrompt = template.systemPromptParts || template.systemPrompt;
     this.thread = [{ role: 'user', content: template.userPrompt }];
+  }
+
+  /**
+   * Initialize with an explicit prompt kind (e.g., clarify, weekly_review_next_actions)
+   */
+  startWithPrompt(kind: PromptKind, text: string, inputType?: 'note' | 'email' | 'meeting_notes' | 'general'): void {
+    const template = generatePromptFor(kind, text, inputType);
+    this.systemPrompt = template.systemPromptParts || template.systemPrompt;
+    this.thread = [{ role: 'user', content: template.userPrompt }];
+  }
+
+  /**
+   * Seed the conversation with the chosen prompt and immediately send to Bedrock.
+   * Returns assistant content.
+   */
+  async sendInitialWithPrompt(kind: PromptKind, text: string, inputType?: 'note' | 'email' | 'meeting_notes' | 'general'): Promise<string> {
+    this.startWithPrompt(kind, text, inputType);
+    const params: ConverseParams = {
+      system: this.systemPrompt!,
+      messages: this.thread.map(m => ({ role: m.role, content: m.content }) as ConverseMessage),
+      inferenceConfig: this.options.inferenceConfig,
+    };
+    const start = Date.now();
+    const response: BedrockResponse = await this.bedrock.converse(params);
+    const latency = Date.now() - start;
+    this.logger.info('ConversationService', 'send initial response', { ms: latency, tokens: response.metadata?.tokens_used, telemetry: true });
+    const assistantContent = response.result;
+    this.thread.push({ role: 'assistant', content: assistantContent });
+    return assistantContent;
   }
 
   /**
@@ -69,7 +98,8 @@ export class GTDConversationService {
   async send(message: string): Promise<string> {
     if (!this.systemPrompt) {
       // If not started, treat first send as initialization with generic context
-      this.startFromSelection(message, 'general');
+      // Default to clarify when no prompt was chosen explicitly
+      this.startWithPrompt('clarify', message, 'general');
       // Do not push the same message twice; the generated userPrompt already contains it
     } else {
       this.thread.push({ role: 'user', content: message });
@@ -183,4 +213,3 @@ export class GTDConversationService {
 export function createConversationService(bedrock: BedrockClient, options?: ConversationServiceOptions): GTDConversationService {
   return new GTDConversationService(bedrock, options);
 }
-
