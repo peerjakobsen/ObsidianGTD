@@ -118,3 +118,12 @@ export class WorkspaceLeaf {
   setViewState = jest.fn();
   detach = jest.fn();
 }
+
+export class MarkdownRenderer {
+  static async render(app: any, markdown: string, el: HTMLElement) {
+    // Simple stub: render markdown as text; tests assert on presence of text
+    const div = document.createElement('div');
+    div.textContent = markdown;
+    el.appendChild(div);
+  }
+}

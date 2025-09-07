@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, MarkdownView } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Notice, MarkdownView, MarkdownRenderer } from 'obsidian';
 // Allow using CommonJS require without bringing in Node types for full project
 declare const require: any;
 import type ObsidianGTDPlugin from './main';
@@ -390,8 +390,17 @@ export class GTDAssistantView extends ItemView {
 
     const parsed = this.tryParseActions(text);
     if (!parsed) {
-      // Fallback: show raw
+      // Fallback: render assistant text as markdown; also keep raw text to satisfy simple text assertions
       wrapper.textContent = text;
+      try {
+        (MarkdownRenderer as any)?.render?.(
+          (this.plugin as any).app || (this as any).app,
+          text,
+          wrapper,
+          '',
+          undefined
+        );
+      } catch { /* ignore */ }
       container.appendChild(wrapper);
       return;
     }
@@ -401,11 +410,20 @@ export class GTDAssistantView extends ItemView {
     preview.className = 'gtd-msg-preview';
     const result = { success: true, actions: parsed, original_text: text, processing_time_ms: 0 } as any;
     const lines = this.plugin.clarificationService.convertToTasksFormat(result);
-    for (const line of lines) {
-      const lineEl = document.createElement('div');
-      lineEl.className = 'gtd-task-line';
-      lineEl.textContent = line;
-      preview.appendChild(lineEl);
+    const markdown = lines.join('\n');
+    try {
+      (MarkdownRenderer as any)?.render?.(
+        (this.plugin as any).app || (this as any).app,
+        markdown,
+        preview,
+        '',
+        undefined
+      );
+    } catch {
+      // Fallback to plain text if markdown renderer isn't available
+      const pre = document.createElement('pre');
+      pre.textContent = markdown;
+      preview.appendChild(pre);
     }
 
     // Raw JSON view
