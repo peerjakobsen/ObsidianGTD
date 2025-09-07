@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { GTDAssistantView } from '../src/assistant-view';
 import type ObsidianGTDPlugin from '../src/main';
@@ -76,5 +77,78 @@ describe('GTDAssistantView - note-context filtering', () => {
     expect(inserted).not.toContain('Do A');
     expect(inserted).not.toContain('Bob to do B');
   });
-});
 
+  it('inserts all items when note context is unknown', async () => {
+    (mockView as any).file = { name: 'random.md' };
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+    const inserted = mockEditor.replaceRange.mock.calls[0][0] as string;
+    expect(inserted).toContain('Do A');
+    expect(inserted).toContain('Bob to do B');
+    expect(inserted).toContain('Consider C');
+  });
+
+  it('excludes #waiting and #someday tagged items from next-actions.md', async () => {
+    // Override with data that includes tag-inferred categories
+    mockConversation.prepareForInsert = jest.fn().mockResolvedValue({
+      success: true,
+      actions: [
+        { type: 'next_action', action: 'Pure next', tags: [] },
+        { type: 'next_action', action: 'Follow up with Dan', tags: ['#waiting'] },
+        { type: 'next_action', action: 'Maybe relocate', tags: ['#someday'] },
+      ],
+      original_text: '',
+      processing_time_ms: 0,
+    });
+
+    (mockView as any).file = { name: 'next-actions.md' };
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+    const inserted = mockEditor.replaceRange.mock.calls[0][0] as string;
+    expect(inserted).toContain('Pure next');
+    expect(inserted).not.toContain('Follow up with Dan');
+    expect(inserted).not.toContain('Maybe relocate');
+  });
+
+  it('includes items with #waiting in waiting-for.md even if type is next_action', async () => {
+    mockConversation.prepareForInsert = jest.fn().mockResolvedValue({
+      success: true,
+      actions: [
+        { type: 'waiting_for', action: 'Alice to send report', tags: [] },
+        { type: 'next_action', action: 'Follow up with Dan', tags: ['#waiting'] },
+      ],
+      original_text: '',
+      processing_time_ms: 0,
+    });
+
+    (mockView as any).file = { name: 'waiting-for.md' };
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+    const inserted = mockEditor.replaceRange.mock.calls[0][0] as string;
+    expect(inserted).toContain('Alice to send report');
+    expect(inserted).toContain('Follow up with Dan');
+  });
+
+  it('includes items with #someday in someday-maybe.md even if type is next_action', async () => {
+    mockConversation.prepareForInsert = jest.fn().mockResolvedValue({
+      success: true,
+      actions: [
+        { type: 'someday_maybe', action: 'Write a novel', tags: [] },
+        { type: 'next_action', action: 'Maybe relocate', tags: ['#someday'] },
+      ],
+      original_text: '',
+      processing_time_ms: 0,
+    });
+
+    (mockView as any).file = { name: 'someday-maybe.md' };
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+    const inserted = mockEditor.replaceRange.mock.calls[0][0] as string;
+    expect(inserted).toContain('Write a novel');
+    expect(inserted).toContain('Maybe relocate');
+  });
+});

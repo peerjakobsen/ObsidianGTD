@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { GTDAssistantView } from '../src/assistant-view';
 import type ObsidianGTDPlugin from '../src/main';
-import { MarkdownView, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, WorkspaceLeaf, Notice } from 'obsidian';
 
 jest.mock('obsidian');
 
@@ -123,7 +124,6 @@ describe('GTDAssistantView - controller logic', () => {
     expect(mockConversation.sendInitialWithPrompt).not.toHaveBeenCalled();
 
     // Click Send to seed with Clarify
-    const sendBtn = Array.from(document.body.querySelectorAll('button')).find(b => b.textContent === 'Send') as HTMLButtonElement;
     await (view as any).handleSend();
     expect(mockConversation.sendInitialWithPrompt).toHaveBeenCalledWith('clarify', 'Process this', 'general');
     expect(mockConversation.send).not.toHaveBeenCalled();
@@ -155,6 +155,101 @@ describe('GTDAssistantView - controller logic', () => {
     expect(mockConversation.sendInitialWithPrompt).toHaveBeenCalledWith('weekly_review_someday_maybe', 'Maybe list', 'general');
   });
 
+  it('toggles compact mode and aria-pressed state', async () => {
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    const container = document.body.querySelector('.gtd-assistant-view') as HTMLElement;
+    const compactBtn = Array.from(document.body.querySelectorAll('.gtd-toolbar-right .gtd-toolbar-btn')).find(b => b.textContent === 'Compact') as HTMLButtonElement;
+    expect(compactBtn).toBeTruthy();
+    expect(container.classList.contains('is-compact')).toBe(false);
+    expect(compactBtn.getAttribute('aria-pressed')).toBe('false');
+
+    compactBtn.click();
+    expect(container.classList.contains('is-compact')).toBe(true);
+    expect(compactBtn.getAttribute('aria-pressed')).toBe('true');
+
+    compactBtn.click();
+    expect(container.classList.contains('is-compact')).toBe(false);
+    expect(compactBtn.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('renders preview from JSON inside fenced code block', async () => {
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'user', content: 'Please clarify' },
+      { role: 'assistant', content: '```json\n[{"action":"From block","tags":[]}]\n```' },
+    ]);
+
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    const text = document.body.textContent || '';
+    expect(text).toContain('From block');
+  });
+
+  it('falls back to raw rendering when no JSON array is present', async () => {
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'assistant', content: 'Just a plain message' },
+    ]);
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    const text = document.body.textContent || '';
+    expect(text).toContain('Just a plain message');
+  });
+
+  it('shows a notice and does not send when input is empty', async () => {
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await (view as any).handleSend('  ');
+    expect((Notice as unknown as jest.Mock).mock.calls.some(args => String(args[0]).includes('Enter a message'))).toBe(true);
+    expect(mockConversation.send).not.toHaveBeenCalled();
+    expect(mockConversation.sendInitialWithPrompt).not.toHaveBeenCalled();
+  });
+
+  it('falls back to last markdown leaf when no active view and reveals it', async () => {
+    const editor1 = { getCursor: jest.fn().mockReturnValue({ line: 0, ch: 0 }), replaceRange: jest.fn() };
+    const editor2 = { getCursor: jest.fn().mockReturnValue({ line: 1, ch: 0 }), replaceRange: jest.fn() };
+    const leaf1 = { view: { editor: editor1, file: { name: 'one.md' } } };
+    const leaf2 = { view: { editor: editor2, file: { name: 'two.md' } } };
+    (mockPlugin.app.workspace as any).getActiveViewOfType = jest.fn().mockReturnValue(null);
+    (mockPlugin.app.workspace as any).getLeavesOfType = jest.fn().mockReturnValue([leaf1, leaf2]);
+    (mockPlugin.app.workspace as any).revealLeaf = jest.fn();
+
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'assistant', content: '[{"action":"A","tags":[]}]' },
+    ]);
+
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+
+    expect((mockPlugin.app.workspace as any).revealLeaf).toHaveBeenCalledWith(leaf2);
+    expect(editor2.replaceRange).toHaveBeenCalled();
+    expect(editor1.replaceRange).not.toHaveBeenCalled();
+  });
+
+  it('does not insert when no tasks match current note context', async () => {
+    // Only waiting/someday items in a next-actions note
+    mockConversation.prepareForInsert = jest.fn().mockResolvedValue({
+      success: true,
+      actions: [
+        { type: 'waiting_for', action: 'Wait for X', tags: [] },
+        { type: 'someday_maybe', action: 'Maybe Y', tags: [] },
+      ],
+      original_text: '',
+      processing_time_ms: 0,
+    } as any);
+
+    const editor = (mockPlugin.app.workspace.getActiveViewOfType() as any).editor;
+    (mockPlugin.app.workspace.getActiveViewOfType() as any).file = { name: 'next-actions.md' };
+
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    await view.handleInsertTasks();
+
+    expect(editor.replaceRange).not.toHaveBeenCalled();
+    expect(mockPlugin.clarificationService.convertToTasksFormat).not.toHaveBeenCalled();
+  });
   it('renders a tasks preview for assistant JSON and toggles raw view', async () => {
     // Thread with an assistant JSON response
     mockConversation.getThread = jest.fn().mockReturnValue([

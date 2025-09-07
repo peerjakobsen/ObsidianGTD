@@ -2,7 +2,6 @@ import { ItemView, WorkspaceLeaf, Notice, MarkdownView } from 'obsidian';
 import type ObsidianGTDPlugin from './main';
 import { createConversationService, GTDConversationService } from './conversation-service';
 import type { PromptKind } from './gtd-prompts';
-import { createBedrockServiceClient } from './bedrock-client';
 import { GTDLogger } from './logger';
 
 export const GTD_ASSISTANT_VIEW_TYPE = 'gtd-assistant-view';
@@ -13,9 +12,7 @@ export class GTDAssistantView extends ItemView {
   private logger = GTDLogger.getInstance();
 
   // UI state
-  private didAutoSendInitial = false;
   private isSending = false;
-  private lastError: string | null = null;
   private selectedPrompt: PromptKind = 'clarify';
 
   // UI elements
@@ -41,6 +38,8 @@ export class GTDAssistantView extends ItemView {
       this.conversation = deps.conversationService;
     } else {
       const cfg = this.plugin.settings;
+      // Lazy-require to avoid pulling heavy AWS types during isolated test compiles
+      const { createBedrockServiceClient } = require('./bedrock-client');
       const bedrock = createBedrockServiceClient(cfg.awsBearerToken, cfg.awsRegion, cfg.awsBedrockModelId, { timeout: cfg.timeout });
       this.conversation = createConversationService(bedrock, { strictJsonMode: true });
     }
@@ -82,7 +81,6 @@ export class GTDAssistantView extends ItemView {
     }
 
     this.setSending(true, 'Sending…');
-    this.lastError = null;
     try {
       const thread = this.conversation.getThread();
       if (!thread || thread.length === 0) {
@@ -96,7 +94,6 @@ export class GTDAssistantView extends ItemView {
       this.setStatus('Ready');
     } catch (err: any) {
       const msg = err?.message || String(err);
-      this.lastError = msg;
       this.setStatus(`Error: ${msg}`);
       new Notice(`GTD Assistant error: ${msg}`);
     } finally {
@@ -107,7 +104,6 @@ export class GTDAssistantView extends ItemView {
   // Controller: Insert tasks at cursor
   async handleInsertTasks(): Promise<void> {
     this.setSending(true, 'Preparing tasks for insert…');
-    this.lastError = null;
     try {
       const result = await this.conversation.prepareForInsert();
 
@@ -161,7 +157,6 @@ export class GTDAssistantView extends ItemView {
       }
     } catch (err: any) {
       const msg = err?.message || String(err);
-      this.lastError = msg;
       this.setStatus(`Error: ${msg}`);
       new Notice(`Failed to prepare tasks: ${msg}`);
     } finally {

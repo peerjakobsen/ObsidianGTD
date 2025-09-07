@@ -1,4 +1,8 @@
-import { BedrockClient, BedrockResponse, ConverseMessage, ConverseParams } from './bedrock-client';
+// Minimal Bedrock client/response typings to avoid importing heavy AWS SDK types during isolated test compiles
+type ConverseMessage = { role: 'user' | 'assistant'; content: string };
+type ConverseParams = { system?: string | string[]; messages: ConverseMessage[]; inferenceConfig?: any };
+type BedrockResponse = { result: string; metadata?: { tokens_used?: number } };
+type BedrockClient = { converse(params: ConverseParams): Promise<BedrockResponse> };
 import { Clarify, generatePromptFor, PromptKind } from './gtd-prompts';
 import { GTDLogger } from './logger';
 import type { GTDActionType, ClarificationResult } from './clarification-service';

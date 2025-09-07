@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "target": "ES6",
+    "lib": ["DOM", "ES6"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": [],
+    "typeRoots": [
+      "./type-stubs"
+    ],
+    "paths": {
+      "obsidian": ["type-stubs/obsidian/index.d.ts"],
+      "@jest/globals": ["type-stubs/jest/globals.d.ts"],
+      "@aws-sdk/client-bedrock-runtime": ["../tests/type-stubs/aws-sdk/client-bedrock-runtime.d.ts"],
+      "@smithy/*": ["../tests/type-stubs/@smithy/*"]
+    }
+  }
+}
+

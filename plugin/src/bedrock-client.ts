@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AWS Bedrock Client for communicating directly with Amazon Bedrock
  * Replaces the HTTP-based API client with direct AWS SDK calls

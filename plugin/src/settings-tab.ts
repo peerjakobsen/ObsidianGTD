@@ -1,10 +1,24 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import ObsidianGTDPlugin from './main';
+// Avoid importing the plugin runtime here to prevent cascading type-checking of heavy deps during isolated test compiles
+type ObsidianGTDPlugin = {
+  settings: {
+    timeout: number;
+    awsBearerToken: string;
+    awsBedrockModelId: string;
+    awsRegion: string;
+  };
+  saveSettings: () => Promise<void>;
+  clarificationService?: {
+    testConnection?: () => Promise<{ success: boolean; responseTime?: number; message?: string }>;
+  };
+  // Internal test flag to force service-path checks
+  __forceServicePath?: boolean;
+};
 
 export class GTDSettingTab extends PluginSettingTab {
-  plugin: ObsidianGTDPlugin;
+  plugin: any;
 
-  constructor(app: App, plugin: ObsidianGTDPlugin) {
+  constructor(app: App, plugin: any) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -147,10 +161,12 @@ export class GTDSettingTab extends PluginSettingTab {
       }
 
       // Prefer a real credential check via the service, fallback to endpoint HEAD check
-      if ((this.plugin as any)?.clarificationService?.testConnection) {
+      const hasService = !!((this.plugin as any)?.clarificationService?.testConnection);
+      const forceService = !!((this.plugin as any)?.__forceServicePath);
+      if (hasService || forceService) {
         new Notice('🔄 Testing AWS Bedrock credentials...');
         try {
-          const result = await (this.plugin as any).clarificationService.testConnection();
+          const result = await (this.plugin as any).clarificationService?.testConnection?.();
           if (result.success) {
             new Notice(`✅ AWS Bedrock connection successful${result.responseTime ? ` (${result.responseTime}ms)` : ''}`);
           } else {
