@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { GTDAssistantView } from '../src/assistant-view';
 import type ObsidianGTDPlugin from '../src/main';
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, WorkspaceLeaf } from 'obsidian';
 
 jest.mock('obsidian');
 
@@ -27,6 +27,7 @@ describe('GTDAssistantView - controller logic', () => {
       app: {
         workspace: {
           getActiveViewOfType: jest.fn().mockReturnValue(mockView),
+          detachLeavesOfType: jest.fn(),
         },
       },
       settings: {
@@ -57,7 +58,9 @@ describe('GTDAssistantView - controller logic', () => {
       getThread: getThreadMock,
     };
 
-    leaf = { containerEl: document.createElement('div') };
+    leaf = new (WorkspaceLeaf as any)();
+    // Ensure detach is a jest spy even if mock implementation changes
+    (leaf as any).detach = jest.fn();
   });
 
   it('disables Send while sending and calls conversation.send', async () => {
@@ -68,7 +71,7 @@ describe('GTDAssistantView - controller logic', () => {
     const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
     await view.onOpen();
     const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement;
-    const sendBtn = document.body.querySelector('button') as HTMLButtonElement;
+    const sendBtn = Array.from(document.body.querySelectorAll('button')).find(b => b.textContent === 'Send') as HTMLButtonElement;
     textarea.value = 'Hello';
 
     // Act: start send (do not await yet)
@@ -130,5 +133,67 @@ describe('GTDAssistantView - controller logic', () => {
     toggle.click();
     const rawShown = (document.body.querySelector('.gtd-msg-raw') as HTMLElement).style.display !== 'none';
     expect(rawShown).toBe(true);
+  });
+
+  it('Close button detaches leaf and New Chat resets thread', async () => {
+    // Provide an assistant message so Insert would be enabled
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'user', content: 'Hi' },
+      { role: 'assistant', content: '[{"action":"A","tags":[]}]' },
+    ]);
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    const newChatBtn = Array.from(document.body.querySelectorAll('.gtd-toolbar-right .gtd-toolbar-btn')).find(b => b.textContent === 'New Chat') as HTMLButtonElement;
+    expect(newChatBtn).toBeTruthy();
+    newChatBtn.click();
+    expect(mockConversation.resetThread).toHaveBeenCalled();
+
+    const closeBtn = Array.from(document.body.querySelectorAll('.gtd-toolbar-right .gtd-toolbar-btn')).find(b => b.textContent === 'Close') as HTMLButtonElement;
+    expect(closeBtn).toBeTruthy();
+    closeBtn.click();
+    expect(mockPlugin.app.workspace.detachLeavesOfType).toHaveBeenCalledWith('gtd-assistant-view');
+  });
+
+  it('disables Insert until an assistant reply exists', async () => {
+    mockConversation.getThread = jest.fn().mockReturnValue([{ role: 'user', content: 'Hi' }]);
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+    const insertBtn = Array.from(document.body.querySelectorAll('button')).find(b => b.textContent === 'Insert Tasks') as HTMLButtonElement; // explicit match
+    expect(insertBtn.disabled).toBe(true);
+
+    // Now simulate an assistant reply and refresh
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'user', content: 'Hi' },
+      { role: 'assistant', content: '[{"action":"A","tags":[]}]' },
+    ]);
+    (view as any).refreshMessages();
+    expect(insertBtn.disabled).toBe(false);
+  });
+
+  it('auto-scrolls messages to bottom after rendering', async () => {
+    // Provide a couple of messages
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'user', content: 'Hi' },
+      { role: 'assistant', content: '[{"action":"A","tags":[]}]' },
+      { role: 'assistant', content: '[{"action":"B","tags":[]}]' },
+    ]);
+
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    const messages = document.body.querySelector('.gtd-assistant-messages') as HTMLElement;
+    // Mock scrollHeight and capture scrollTop set
+    Object.defineProperty(messages, 'scrollHeight', { value: 999, configurable: true });
+    let setTop = 0;
+    Object.defineProperty(messages, 'scrollTop', { 
+      set: (v) => { setTop = v as number; },
+      get: () => setTop,
+      configurable: true,
+    });
+
+    // Force a refresh to trigger auto-scroll
+    (view as any).refreshMessages();
+    expect(setTop).toBe(999);
   });
 });

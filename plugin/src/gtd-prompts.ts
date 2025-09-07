@@ -43,6 +43,11 @@ Quick tasks: #5m, #10m, #15m
 Medium tasks: #30m, #45m, #1h
 Longer tasks: #2h, #3h, #4h
 
+CLASSIFICATION RULES:
+- If the next step is for someone else to do (you are waiting on them), classify it as waiting_for and include the tag #waiting.
+- If the item is not actionable right now or is a “maybe later,” classify it as someday_maybe and include the tag #someday.
+- Otherwise classify as next_action with no #waiting or #someday tag.
+
 Response format: Return a JSON array of actions with the following structure:
 [
   {

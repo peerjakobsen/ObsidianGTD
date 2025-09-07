@@ -24,6 +24,8 @@ export class GTDAssistantView extends ItemView {
   private insertBtn!: HTMLButtonElement;
   private clearBtn!: HTMLButtonElement;
   private statusEl!: HTMLElement;
+  private closeBtn!: HTMLButtonElement;
+  private newChatBtn!: HTMLButtonElement;
 
   constructor(leaf: WorkspaceLeaf, plugin: ObsidianGTDPlugin, deps?: { conversationService?: GTDConversationService }) {
     super(leaf);
@@ -53,6 +55,7 @@ export class GTDAssistantView extends ItemView {
     const host: HTMLElement = (this as any).containerEl ?? document.body;
     host.appendChild(this.container);
     this.render();
+    try { this.inputEl?.focus(); } catch (e) { /* ignore */ }
 
     // Preload selection and auto-send on first open
     if (!this.didAutoSendInitial) {
@@ -100,10 +103,40 @@ export class GTDAssistantView extends ItemView {
     this.lastError = null;
     try {
       const result = await this.conversation.prepareForInsert();
-      const lines = this.plugin.clarificationService.convertToTasksFormat(result);
 
-      // Insert at cursor in active markdown editor
-      const view = this.plugin.app?.workspace?.getActiveViewOfType(MarkdownView);
+      // Determine target markdown view (active or last open) first
+      const ws: any = this.plugin.app?.workspace;
+      let view = ws?.getActiveViewOfType?.(MarkdownView);
+      let leaf: any = null;
+      if (!view || !(view as any).editor) {
+        const leaves = ws?.getLeavesOfType?.('markdown');
+        if (leaves && leaves.length > 0) {
+          leaf = leaves[leaves.length - 1];
+          view = leaf.view;
+        }
+      }
+
+      // Determine note context by filename and filter actions accordingly
+      const fileName: string = ((view as any)?.file?.name) || ((view as any)?.file?.basename) || ((view as any)?.file?.path) || '';
+      const context = this.getNoteContext(fileName);
+      const filteredActions = this.filterActionsForNoteContext(result.actions || [], context);
+
+      if (filteredActions.length === 0) {
+        new Notice('No tasks to insert for this note');
+        this.setStatus('Nothing to insert');
+        return;
+      }
+
+      const filteredResult = { ...result, actions: filteredActions } as any;
+      const lines = this.plugin.clarificationService.convertToTasksFormat(filteredResult);
+
+      // Insert at cursor in markdown editor: prefer active view, else fall back to last markdown leaf
+      // 'view' and 'leaf' already resolved above
+
+      if (leaf && ws?.revealLeaf) {
+        try { ws.revealLeaf(leaf); } catch (e) { /* ignore */ }
+      }
+
       if (view && (view as any).editor) {
         const editor = (view as any).editor;
         const cursor = editor.getCursor();
@@ -114,10 +147,11 @@ export class GTDAssistantView extends ItemView {
           // In tests/mocks, replaceRange may be missing
         }
         new Notice(`Inserted ${lines.length} task(s)`);
+        this.setStatus('Tasks inserted');
       } else {
-        new Notice('No active markdown editor to insert tasks');
+        new Notice('No markdown editor found. Open a note in edit mode and try again.');
+        this.setStatus('Editor not found');
       }
-      this.setStatus('Tasks inserted');
     } catch (err: any) {
       const msg = err?.message || String(err);
       this.lastError = msg;
@@ -126,6 +160,32 @@ export class GTDAssistantView extends ItemView {
     } finally {
       this.setSending(false);
     }
+  }
+
+  private getNoteContext(fileName: string): 'next' | 'waiting' | 'someday' | 'unknown' {
+    const f = (fileName || '').toLowerCase();
+    if (f.includes('waiting-for')) return 'waiting';
+    if (f.includes('someday-maybe')) return 'someday';
+    if (f.includes('next-actions') || f.includes('next_action') || f.includes('next-actions')) return 'next';
+    return 'unknown';
+  }
+
+  private filterActionsForNoteContext(actions: Array<any>, context: 'next' | 'waiting' | 'someday' | 'unknown') {
+    switch (context) {
+      case 'next':
+        return actions.filter(a => (a?.type === 'next_action') && !this.hasTag(a, '#waiting') && !this.hasTag(a, '#someday'));
+      case 'waiting':
+        return actions.filter(a => a?.type === 'waiting_for' || this.hasTag(a, '#waiting'));
+      case 'someday':
+        return actions.filter(a => a?.type === 'someday_maybe' || this.hasTag(a, '#someday'));
+      default:
+        return actions;
+    }
+  }
+
+  private hasTag(action: any, tag: string): boolean {
+    const tags: string[] = Array.isArray(action?.tags) ? action.tags : [];
+    return tags.some(t => (t || '').toLowerCase() === tag.toLowerCase());
   }
 
   // Controller: Clear thread and UI
@@ -141,9 +201,34 @@ export class GTDAssistantView extends ItemView {
 
     const header = document.createElement('div');
     header.className = 'gtd-assistant-header';
-    const h3 = document.createElement('h3');
-    h3.textContent = 'GTD Assistant';
-    header.appendChild(h3);
+    const bar = document.createElement('div');
+    bar.className = 'gtd-toolbar';
+    const title = document.createElement('h3');
+    title.textContent = 'GTD Assistant';
+    const right = document.createElement('div');
+    right.className = 'gtd-toolbar-right';
+    this.newChatBtn = document.createElement('button');
+    this.newChatBtn.textContent = 'New Chat';
+    this.newChatBtn.className = 'gtd-toolbar-btn';
+    this.newChatBtn.addEventListener('click', () => { this.handleClear(); this.inputEl?.focus(); });
+    this.closeBtn = document.createElement('button');
+    this.closeBtn.textContent = 'Close';
+    this.closeBtn.className = 'gtd-toolbar-btn';
+    this.closeBtn.addEventListener('click', () => {
+      try {
+        const ws: any = this.plugin?.app?.workspace;
+        if (ws?.detachLeavesOfType) {
+          ws.detachLeavesOfType(GTD_ASSISTANT_VIEW_TYPE);
+        } else if ((this as any).leaf?.detach) {
+          (this as any).leaf.detach();
+        }
+      } catch (e) { /* ignore */ }
+    });
+    right.appendChild(this.newChatBtn);
+    right.appendChild(this.closeBtn);
+    bar.appendChild(title);
+    bar.appendChild(right);
+    header.appendChild(bar);
     this.container.appendChild(header);
 
     this.messagesEl = document.createElement('div');
@@ -159,6 +244,10 @@ export class GTDAssistantView extends ItemView {
     this.inputEl.rows = 3;
     this.inputEl.placeholder = 'Type a message…';
     inputWrap.appendChild(this.inputEl);
+    this.inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
+      const isSend = e.key === 'Enter' && ((e as any).metaKey || (e as any).ctrlKey);
+      if (isSend) { e.preventDefault(); this.handleSend(); }
+    });
 
     const btnRow = document.createElement('div');
     btnRow.className = 'gtd-assistant-buttons';
@@ -184,6 +273,7 @@ export class GTDAssistantView extends ItemView {
     this.sendBtn.addEventListener('click', () => this.handleSend());
     this.insertBtn.addEventListener('click', () => this.handleInsertTasks());
     this.clearBtn.addEventListener('click', () => this.handleClear());
+    this.updateButtonStates();
   }
 
   private refreshMessages(): void {
@@ -215,6 +305,13 @@ export class GTDAssistantView extends ItemView {
       }
       this.messagesEl.appendChild(row);
     }
+    // Auto-scroll to bottom after rendering
+    try {
+      this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+    } catch (e) {
+      // ignore in test environments
+    }
+    this.updateButtonStates();
   }
 
   // Try to render assistant output as a tasks preview when it contains a JSON array
@@ -310,13 +407,21 @@ export class GTDAssistantView extends ItemView {
   private setSending(sending: boolean, statusWhenSending?: string): void {
     this.isSending = sending;
     if (this.sendBtn) this.sendBtn.disabled = sending;
-    if (this.insertBtn) this.insertBtn.disabled = sending;
+    this.updateButtonStates();
     if (this.clearBtn) this.clearBtn.disabled = false; // Clear stays enabled
     if (sending && statusWhenSending) this.setStatus(statusWhenSending);
   }
 
   private setStatus(text: string): void {
     if (this.statusEl) this.statusEl.textContent = text;
+  }
+
+  private updateButtonStates(): void {
+    if (!this.sendBtn || !this.insertBtn) return;
+    const thread = this.conversation.getThread();
+    const hasAssistant = thread.some(m => m.role === 'assistant');
+    this.sendBtn.disabled = !!this.isSending;
+    this.insertBtn.disabled = !!this.isSending || !hasAssistant;
   }
 
   private getCurrentSelection(): string | null {

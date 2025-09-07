@@ -74,6 +74,15 @@ export default class ObsidianGTDPlugin extends Plugin {
       }
     });
 
+    // Command to toggle the assistant sidebar
+    this.addCommand({
+      id: 'toggle-gtd-assistant',
+      name: 'Toggle GTD Assistant (Sidebar)',
+      callback: async () => {
+        await this.toggleAssistantView();
+      }
+    });
+
     logger.info('Plugin', 'GTD Assistant plugin loaded successfully');
     
     // Force AWS SDK bundling - create a test client but don't use it
@@ -112,6 +121,20 @@ export default class ObsidianGTDPlugin extends Plugin {
       workspace?.revealLeaf?.(leaf);
     } catch (e) {
       // In tests, workspace APIs may not exist
+    }
+  }
+
+  private async toggleAssistantView() {
+    try {
+      const workspace: any = (this as any).app?.workspace;
+      const existing = workspace?.getLeavesOfType?.(GTD_ASSISTANT_VIEW_TYPE);
+      if (existing && existing.length > 0) {
+        workspace?.detachLeavesOfType?.(GTD_ASSISTANT_VIEW_TYPE);
+        return;
+      }
+      await this.activateAssistantView();
+    } catch (e) {
+      // ignore in test envs
     }
   }
 

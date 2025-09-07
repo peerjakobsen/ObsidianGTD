@@ -116,4 +116,5 @@ export class WorkspaceLeaf {
   containerEl: HTMLElement = document.createElement('div');
   view: any;
   setViewState = jest.fn();
+  detach = jest.fn();
 }
