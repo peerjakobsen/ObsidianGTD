@@ -184,7 +184,7 @@ export class GTDLogger {
   /**
    * Get recent log entries for debugging
    */
-  getRecentLogs(count: number = 50): LogEntry[] {
+  getRecentLogs(count = 50): LogEntry[] {
     return this.memoryBuffer.slice(-count);
   }
 

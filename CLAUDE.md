@@ -4,39 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Obsidian GTD is a dual-component system implementing Getting Things Done (GTD) methodology in Obsidian:
+Obsidian GTD is a direct-integration system implementing Getting Things Done (GTD) methodology in Obsidian:
 
-- **FastAPI Server** (`/server/`): Local privacy-focused backend providing AI-powered GTD clarification via AWS Bedrock
+- Direct AWS integration via AWS JavaScript SDK (no backend server required)
 - **Obsidian Plugin** (`/plugin/`): TypeScript plugin integrating GTD workflows directly into Obsidian
 
 ## Architecture
 
-The system follows a client-server pattern with localhost-only communication for privacy:
+The plugin communicates directly with AWS Bedrock using the AWS JavaScript SDK:
 
 1. **Plugin** captures selected text from Obsidian editor
-2. **Server** processes text through AWS Bedrock using GTD-specific prompts
-3. **Plugin** receives structured task data compatible with Obsidian Tasks plugin format
+2. **Plugin** calls AWS Bedrock via SDK with GTD-specific prompts and inserts Tasks-formatted results
 
 Key architectural decisions:
-- Local-only deployment (no external data sharing)
-- API key authentication (not IAM credentials)
+- No local server; fewer moving parts and simpler setup
+- Bearer token authentication (not IAM credentials)
 - Agent OS development pattern with structured specifications
 
 ## Development Commands
 
-### Server Development (`/server/`)
-```bash
-# Setup
-cp .env.example .env  # Configure AWS Bedrock API key
-uv sync
-
-# Development
-uv run python main.py                    # Start server on localhost:8000
-uv run uvicorn main:app --reload        # Development with auto-reload
-uv run pytest                           # Run tests
-uv run ruff check .                      # Lint code
-uv run mypy .                            # Type check
-```
+### Backend
+No separate backend server. The plugin talks directly to AWS Bedrock using the AWS JavaScript SDK.
 
 ### Plugin Development (`/plugin/`)
 ```bash
@@ -73,12 +61,8 @@ This project uses authentic GTD language throughout:
 
 ## Technology Stack
 
-**Server:**
-- FastAPI with Python 3.13+
-- AWS Bedrock API integration
-- UV package manager for Python dependencies
-- Pydantic for data validation and settings
-- Structured logging and comprehensive error handling
+**Backend:**
+- No separate server; direct AWS Bedrock via AWS JavaScript SDK
 
 **Plugin:**
 - TypeScript with Obsidian Plugin API
@@ -89,21 +73,15 @@ This project uses authentic GTD language throughout:
 
 ## Key Files
 
-**Server:**
-- `main.py`: FastAPI application with CORS and exception handling
-- `bedrock_client.py`: AWS Bedrock integration layer
-- `models.py`: Pydantic data models for requests/responses
-- `config.py`: Environment-based configuration
-
 **Plugin:**  
 - `src/main.ts`: Main plugin class with GTD command registration
-- `src/settings-tab.ts`: Settings UI with backend connection testing
+- `src/settings-tab.ts`: Settings UI with AWS connection testing
 - `deploy.mjs`: Automated deployment to Obsidian vault
 - `esbuild.config.mjs`: Build configuration with watch mode
 
 ## Testing Strategy
 
-**Server:** Standard FastAPI testing with pytest and async support
+**Backend:** No server backend; tests focus on Jest for plugin and Bedrock client mocks
 **Plugin:** Jest with jsdom environment and Obsidian API mocks in `tests/__mocks__/obsidian.ts`
 
 The project follows Agent OS patterns with specifications in `.agent-os/specs/` and structured task tracking.

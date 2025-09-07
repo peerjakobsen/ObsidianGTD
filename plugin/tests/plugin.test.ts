@@ -21,7 +21,7 @@ const mockManifest = {
   name: 'Obsidian GTD',
   version: '1.0.0',
   minAppVersion: '0.15.0',
-  description: 'Getting Things Done (GTD) workflow with AI assistance via local FastAPI server',
+  description: 'Getting Things Done (GTD) workflow with AI assistance via direct AWS Bedrock integration',
   author: 'Your Name',
   authorUrl: '',
   fundingUrl: '',
@@ -51,9 +51,9 @@ describe('ObsidianGTDPlugin', () => {
 
     it('should initialize with default settings', () => {
       expect(plugin.settings).toBeDefined();
-      expect(plugin.settings.backendUrl).toBe('http://localhost:8000');
       expect(plugin.settings.timeout).toBe(30000);
-      expect(plugin.settings.apiKey).toBe('');
+      expect(plugin.settings.awsRegion).toBe('us-east-1');
+      expect(plugin.settings.awsBedrockModelId).toBe('us.anthropic.claude-sonnet-4-20250514-v1:0');
     });
   });
 
@@ -68,17 +68,19 @@ describe('ObsidianGTDPlugin', () => {
 
     it('should load settings on onload', async () => {
       const loadDataSpy = jest.spyOn(plugin, 'loadData').mockResolvedValue({
-        backendUrl: 'http://test:8000',
         timeout: 60000,
-        apiKey: 'test-key',
+        awsBearerToken: 'test-bearer',
+        awsRegion: 'eu-west-1',
+        awsBedrockModelId: 'meta.llama3-8b-instruct-v1:0',
       });
 
       await plugin.onload();
 
       expect(loadDataSpy).toHaveBeenCalled();
-      expect(plugin.settings.backendUrl).toBe('http://test:8000');
       expect(plugin.settings.timeout).toBe(60000);
-      expect(plugin.settings.apiKey).toBe('test-key');
+      expect(plugin.settings.awsBearerToken).toBe('test-bearer');
+      expect(plugin.settings.awsRegion).toBe('eu-west-1');
+      expect(plugin.settings.awsBedrockModelId).toBe('meta.llama3-8b-instruct-v1:0');
     });
   });
 

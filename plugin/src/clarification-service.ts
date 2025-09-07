@@ -4,8 +4,9 @@
  */
 
 import { GTDPromptGenerator } from './gtd-prompts';
-import { GTDAPIClient, APIResponse, APIClientError } from './api-client';
+import { GTDBedrockClient, BedrockResponse, BedrockClientError } from './bedrock-client';
 import { GTDSettings } from './settings';
+import { GTDLogger } from './logger';
 
 export interface GTDActionType {
   type: 'next_action' | 'waiting_for' | 'someday_maybe';
@@ -46,11 +47,12 @@ export interface ClarificationOptions {
 }
 
 export class GTDClarificationService {
-  private apiClient: GTDAPIClient;
+  private bedrockClient: GTDBedrockClient;
   private settings: GTDSettings;
+  private logger = GTDLogger.getInstance();
 
-  constructor(apiClient: GTDAPIClient, settings: GTDSettings) {
-    this.apiClient = apiClient;
+  constructor(bedrockClient: GTDBedrockClient, settings: GTDSettings) {
+    this.bedrockClient = bedrockClient;
     this.settings = settings;
   }
 
@@ -91,13 +93,13 @@ export class GTDClarificationService {
         options.inputType
       );
 
-      // Step 4: Make API request (optimization handled in prompt generation)
+      // Step 4: Make Bedrock request (optimization handled in prompt generation)
       const fullPrompt = prompt.systemPrompt + '\n\n' + prompt.userPrompt;
-      const apiResponse = await this.apiClient.clarifyText(fullPrompt);
+      const bedrockResponse = await this.bedrockClient.clarifyText(fullPrompt);
 
       // Step 5: Parse and validate response
-      const clarificationResult = this.parseAPIResponse(
-        apiResponse,
+      const clarificationResult = this.parseBedrockResponse(
+        bedrockResponse,
         processedText,
         Date.now() - startTime
       );
@@ -124,21 +126,21 @@ export class GTDClarificationService {
   }
 
   /**
-   * Parse API response into structured GTD actions
+   * Parse Bedrock response into structured GTD actions
    */
-  private parseAPIResponse(
-    apiResponse: APIResponse,
+  private parseBedrockResponse(
+    bedrockResponse: BedrockResponse,
     originalText: string,
     processingTime: number
   ): ClarificationResult {
     try {
-      // Check if the API response indicates an error
-      if (apiResponse.status === 'error') {
-        throw new Error(`API processing failed: ${apiResponse.result}`);
+      // Check if the Bedrock response indicates an error
+      if (bedrockResponse.status === 'error') {
+        throw new Error(`Bedrock processing failed: ${bedrockResponse.result}`);
       }
 
-      // Parse JSON content from API response, handling markdown code blocks
-      let jsonContent = apiResponse.result;
+      // Parse JSON content from Bedrock response, handling markdown code blocks
+      let jsonContent = bedrockResponse.result;
       
       // Check if the response is wrapped in markdown code blocks
       const codeBlockMatch = jsonContent.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
@@ -165,8 +167,8 @@ export class GTDClarificationService {
         actions: validActions,
         original_text: originalText,
         processing_time_ms: processingTime,
-        model_used: apiResponse.metadata.model,
-        tokens_used: apiResponse.metadata.tokens_used
+        model_used: bedrockResponse.metadata.model,
+        tokens_used: bedrockResponse.metadata.tokens_used
       };
 
     } catch (parseError) {
@@ -225,7 +227,7 @@ export class GTDClarificationService {
     }
 
     // Enhanced context validation and normalization
-    let context = this.validateAndNormalizeContext(rawAction.context || '');
+    const context = this.validateAndNormalizeContext(rawAction.context || '');
 
     // Validate date formats
     let dueDate = rawAction.due_date || '';
@@ -233,15 +235,15 @@ export class GTDClarificationService {
     let startDate = rawAction.start_date || '';
     
     if (dueDate && !this.isValidDateFormat(dueDate)) {
-      console.warn(`Invalid due date format for action ${index + 1}: ${dueDate}`);
+      this.logger.warn('ClarificationService', `Invalid due date format for action ${index + 1}: ${dueDate}`);
       dueDate = '';
     }
     if (scheduledDate && !this.isValidDateFormat(scheduledDate)) {
-      console.warn(`Invalid scheduled date format for action ${index + 1}: ${scheduledDate}`);
+      this.logger.warn('ClarificationService', `Invalid scheduled date format for action ${index + 1}: ${scheduledDate}`);
       scheduledDate = '';
     }
     if (startDate && !this.isValidDateFormat(startDate)) {
-      console.warn(`Invalid start date format for action ${index + 1}: ${startDate}`);
+      this.logger.warn('ClarificationService', `Invalid start date format for action ${index + 1}: ${startDate}`);
       startDate = '';
     }
 
@@ -249,13 +251,13 @@ export class GTDClarificationService {
     const validPriorities = ['highest', 'high', 'medium', 'normal', 'low', 'lowest'];
     const priority = rawAction.priority || 'normal';
     if (!validPriorities.includes(priority)) {
-      console.warn(`Invalid priority for action ${index + 1}: ${priority}`);
+      this.logger.warn('ClarificationService', `Invalid priority for action ${index + 1}: ${priority}`);
     }
 
     // Enhanced time estimate parsing and validation
-    let timeEstimate = this.parseAndValidateTimeEstimate(rawAction.time_estimate || '');
+    const timeEstimate = this.parseAndValidateTimeEstimate(rawAction.time_estimate || '');
     if (rawAction.time_estimate && !timeEstimate) {
-      console.warn(`Invalid time estimate format for action ${index + 1}: ${rawAction.time_estimate}`);
+      this.logger.warn('ClarificationService', `Invalid time estimate format for action ${index + 1}: ${rawAction.time_estimate}`);
     }
 
     return {
@@ -319,7 +321,20 @@ export class GTDClarificationService {
       '@anywhere'
     ];
 
-    // Return normalized context (even if not in predefined list, for flexibility)
+    // Validate against standard contexts and add telemetry
+    const isStandardContext = validContexts.includes(normalizedContext.toLowerCase());
+
+    if (!isStandardContext && normalizedContext) {
+      // Log telemetry for non-standard context usage
+      this.logger.info('ClarificationService', 
+        `Non-standard GTD context used: ${normalizedContext}`, {
+        context: normalizedContext,
+        telemetry: true,
+        type: 'custom_context'
+      });
+    }
+
+    // Return normalized context (maintaining flexibility)
     return normalizedContext;
   }
 
@@ -372,8 +387,8 @@ export class GTDClarificationService {
    * Format error messages for user display
    */
   private formatError(error: any): string {
-    if (error instanceof APIClientError) {
-      return `API Error: ${error.message}`;
+    if (error instanceof BedrockClientError) {
+      return `Bedrock Error: ${error.message}`;
     }
     
     if (error.name === 'AbortError') {
@@ -381,7 +396,7 @@ export class GTDClarificationService {
     }
 
     if (error.message?.includes('Network request failed')) {
-      return 'Unable to connect to GTD service. Please ensure the service is running and your settings are correct.';
+      return 'Unable to connect to AWS Bedrock service. Please check your bearer token and network connection.';
     }
 
     return `Unexpected error: ${error.message || 'Unknown error occurred'}`;
@@ -472,10 +487,10 @@ export class GTDClarificationService {
   }
 
   /**
-   * Test connection to the backend service
+   * Test connection to the AWS Bedrock service
    */
   async testConnection(): Promise<{ success: boolean; message: string; responseTime?: number }> {
-    return this.apiClient.testConnection();
+    return this.bedrockClient.testConnection();
   }
 
   /**
@@ -483,10 +498,11 @@ export class GTDClarificationService {
    */
   updateSettings(newSettings: GTDSettings): void {
     this.settings = newSettings;
-    this.apiClient.updateConfig({
-      backendUrl: newSettings.backendUrl,
-      timeout: newSettings.timeout,
-      apiKey: newSettings.apiKey
+    this.bedrockClient.updateConfig({
+      bearerToken: newSettings.awsBearerToken,
+      region: newSettings.awsRegion,
+      modelId: newSettings.awsBedrockModelId,
+      timeout: newSettings.timeout
     });
   }
 
@@ -495,16 +511,18 @@ export class GTDClarificationService {
    */
   getServiceInfo(): {
     hasValidConfig: boolean;
-    backendUrl: string;
-    hasApiKey: boolean;
+    region: string;
+    modelId: string;
+    hasBearerToken: boolean;
     timeout: number;
   } {
-    const config = this.apiClient.getConfig();
+    const config = this.bedrockClient.getConfig();
     return {
-      hasValidConfig: config.hasApiKey && !!config.backendUrl,
-      backendUrl: config.backendUrl,
-      hasApiKey: config.hasApiKey,
-      timeout: config.timeout
+      hasValidConfig: config.hasBearerToken && !!config.region,
+      region: config.region,
+      modelId: config.modelId,
+      hasBearerToken: config.hasBearerToken,
+      timeout: config.timeout ?? this.settings.timeout
     };
   }
 
@@ -531,7 +549,7 @@ export class GTDClarificationService {
     ];
 
     // Split text into sentences and prioritize those with actionable content
-    const sentences = text.match(/[^\.!?]+[\.!?]+/g) || [text];
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
     const prioritizedSentences: { sentence: string; score: number }[] = [];
 
     sentences.forEach(sentence => {
@@ -616,11 +634,12 @@ export class GTDClarificationService {
  * Factory function to create clarification service
  */
 export function createClarificationService(settings: GTDSettings): GTDClarificationService {
-  const apiClient = new GTDAPIClient({
-    backendUrl: settings.backendUrl,
-    timeout: settings.timeout,
-    apiKey: settings.apiKey
+  const bedrockClient = new GTDBedrockClient({
+    bearerToken: settings.awsBearerToken,
+    region: settings.awsRegion,
+    modelId: settings.awsBedrockModelId,
+    timeout: settings.timeout
   });
 
-  return new GTDClarificationService(apiClient, settings);
+  return new GTDClarificationService(bedrockClient, settings);
 }

@@ -180,9 +180,10 @@ describe('Integration Tests - Full GTD Clarification Workflow', () => {
     it('should update clarification service when settings change', async () => {
       // Arrange
       const newSettings = {
-        backendUrl: 'http://localhost:9000',
         timeout: 10000,
-        apiKey: 'new-api-key'
+        awsBearerToken: 'new-bearer',
+        awsBedrockModelId: 'meta.llama3-8b-instruct-v1:0',
+        awsRegion: 'eu-west-1'
       };
       
       plugin.settings = newSettings;

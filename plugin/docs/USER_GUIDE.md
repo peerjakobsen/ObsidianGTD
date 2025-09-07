@@ -19,7 +19,7 @@ GTD Assistant is an Obsidian plugin that helps you implement Getting Things Done
 ### Prerequisites
 
 1. **Obsidian**: Version 1.4.0 or later
-2. **Backend Service**: GTD Assistant FastAPI server running locally
+2. **AWS Connectivity**: Direct AWS Bedrock integration (no local backend)
 3. **API Access**: AWS Bedrock API key configured in the backend
 
 ### Plugin Installation
@@ -35,7 +35,7 @@ GTD Assistant is an Obsidian plugin that helps you implement Getting Things Done
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Backend URL | URL of your GTD Assistant server | `http://localhost:8000` |
+| AWS Settings | Configure bearer token, model ID, and region | — |
 | Timeout | Request timeout in milliseconds | `30000` (30 seconds) |
 | API Key | Your AWS Bedrock API key | (empty - configure in server) |
 
@@ -205,7 +205,7 @@ For texts over 5,000 characters, the plugin automatically:
 
 **"Unable to connect to GTD service"**
 - Solution: Ensure the backend server is running on the configured URL
-- Check that the server is accessible at `http://localhost:8000` (or your configured URL)
+- Ensure your AWS bearer token, model ID, and region are configured correctly in the plugin settings
 
 **"API service unavailable"**
 - Solution: Verify your AWS Bedrock API key is configured in the server

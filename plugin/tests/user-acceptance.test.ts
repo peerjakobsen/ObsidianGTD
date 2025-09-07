@@ -59,9 +59,10 @@ describe('User Acceptance Tests - GTD Clarification Workflows', () => {
       testConnection: jest.fn(),
       updateSettings: jest.fn(),
       getServiceInfo: jest.fn().mockReturnValue({ 
-        hasValidConfig: true, 
-        backendUrl: 'http://localhost:8000',
-        hasApiKey: true,
+        hasValidConfig: true,
+        region: 'us-east-1',
+        modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+        hasBearerToken: false,
         timeout: 30000
       })
     } as any;

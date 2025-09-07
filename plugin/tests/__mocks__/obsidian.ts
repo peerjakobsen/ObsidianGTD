@@ -62,8 +62,33 @@ export class Setting {
   
   setName() { return this; }
   setDesc() { return this; }
-  addText() { return this; }
-  addButton() { return this; }
+  addText(callback: any) { 
+    const mockTextInput = {
+      setPlaceholder: jest.fn().mockReturnThis(),
+      setValue: jest.fn().mockReturnThis(),
+      onChange: jest.fn().mockReturnThis(),
+    };
+    callback(mockTextInput);
+    return this; 
+  }
+  addButton(callback: any) { 
+    const mockButton = {
+      setButtonText: jest.fn().mockReturnThis(),
+      setCta: jest.fn().mockReturnThis(),
+      onClick: jest.fn().mockReturnThis(),
+    };
+    callback(mockButton);
+    return this; 
+  }
+  addDropdown(callback: any) { 
+    const mockDropdown = {
+      addOption: jest.fn().mockReturnThis(),
+      setValue: jest.fn().mockReturnThis(),
+      onChange: jest.fn().mockReturnThis(),
+    };
+    callback(mockDropdown);
+    return this; 
+  }
 }
 
 export const Notice = jest.fn().mockImplementation((message: string, timeout?: number) => ({

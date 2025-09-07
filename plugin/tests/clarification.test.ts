@@ -447,7 +447,7 @@ Return the results as a JSON array.`;
       };
 
       await expect(
-        makeAPIRequest('http://localhost:8000/process', {})
+        makeAPIRequest('https://bedrock-runtime.us-east-1.amazonaws.com', {})
       ).rejects.toThrow('API server unavailable');
     });
   });
