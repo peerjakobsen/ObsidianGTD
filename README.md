@@ -1,6 +1,6 @@
 # Obsidian GTD
 
-A complete Getting Things Done (GTD) solution for Obsidian with AI-powered task processing via direct AWS Bedrock integration (no local server required).
+AI‑powered Getting Things Done (GTD) for Obsidian. Converts inbox text into Tasks‑compatible actions using direct AWS Bedrock integration (no local server required).
 
 ## Project Structure
 
@@ -15,6 +15,33 @@ ObsidianGTD/
 ├── .gitignore              # Git ignore patterns
 └── README.md               # This file
 ```
+
+## Installation
+
+- BRAT (recommended)
+  - In Obsidian, enable Community plugins and install “BRAT”.
+  - BRAT → Add beta plugin → repo: `peerjakobsen/ObsidianGTD`.
+  - Choose “Use releases” so updates come from GitHub releases.
+- Manual
+  - Download `manifest.json` and `main.js` from the latest GitHub release.
+  - Create folder: `<your vault>/.obsidian/plugins/obsidian-gtd/`.
+  - Place both files in that folder and restart Obsidian.
+- Local Deploy (developers)
+  - Set `plugin/.env.local` to your vault’s plugin path and id.
+  - Run: `cd plugin && npm run build:deploy`.
+
+## Usage
+
+- Configure
+  - Settings → Community Plugins → GTD Assistant → Settings.
+  - Set: AWS Bearer Token, Region, Model ID (e.g., `us.anthropic.claude-sonnet-4-20250514-v1:0`).
+  - Use “Test AWS connection” to verify.
+- Clarify Text
+  - Select text in a note → Command Palette: “Clarify selected text (GTD)”, or use the ribbon icon.
+  - The plugin inserts Tasks‑compatible lines (with contexts, time estimates, and optional dates/projects) at the cursor.
+- Notes
+  - Works without external servers; all calls go directly to AWS over HTTPS.
+  - Keep your bearer token private; rotate regularly per your security policy.
 
 ## Components
 
@@ -31,18 +58,10 @@ The plugin communicates directly with AWS Bedrock using the AWS JavaScript SDK. 
 
 TypeScript-based Obsidian plugin that implements GTD workflows with AI assistance.
 
-**Features:**
 - GTD workflow integration
 - Direct AWS Bedrock calls via SDK (bearer token)
-- Privacy-conscious design (no third-party servers)
+- Privacy‑conscious design (no third‑party servers)
 - Seamless Obsidian integration
-
-**Development:**
-```bash
-cd plugin
-npm install
-npm run dev
-```
 
 ## Development Workflow
 
@@ -53,6 +72,12 @@ This project uses [Agent OS](https://buildermethods.com/agent-os) for structured
 3. **Testing**: Comprehensive test coverage
 4. **Documentation**: Auto-generated project documentation
 
+## Requirements
+
+- Obsidian 0.15.0+
+- Node.js 16+ (developers)
+- AWS Bedrock access and bearer token
+
 ## Privacy & Security
 
 - **Direct AWS**: The plugin communicates securely with AWS Bedrock over HTTPS
@@ -60,26 +85,30 @@ This project uses [Agent OS](https://buildermethods.com/agent-os) for structured
 - **No Third-Party Servers**: No localhost proxy or external services required
 - **Open Source**: Full transparency of all code and processes
 
-## Getting Started
+## Troubleshooting
 
-1. **Configure the plugin**:
-   - Open Obsidian → Settings → Community Plugins → GTD Assistant → Settings
-   - Enter your AWS bearer token, model ID, and choose a region
-   - Use “Test AWS connection” to verify endpoint reachability
+- Connection fails
+  - Verify Region and Model ID; try “Test AWS connection”.
+  - Ensure your bearer token is valid and not expired; avoid stray spaces.
+  - Corporate networks may require proxy exceptions for `bedrock-runtime.<region>.amazonaws.com`.
+- No tasks produced
+  - Try a smaller selection; ensure the text contains actionable content.
+  - Check the Console for warnings (View → Toggle Developer Tools).
 
-2. **Install the plugin** (development):
-   - Copy plugin folder to your Obsidian vault's `.obsidian/plugins/` directory
-   - Enable the plugin in Obsidian settings
+## Development
 
-## Requirements
-
-- **Plugin**: Node.js 16+, npm
-- **AWS**: Bedrock API access and bearer token
-- **Obsidian**: Version 0.15.0+
-
-## Contributing
-
-This project follows Agent OS development patterns. See `.agent-os/` directory for specifications and development guidelines.
+- Setup
+  - `cd plugin && npm install`
+  - Build: `npm run build`
+  - Dev bundle: `npm run dev`
+  - Tests: `npm test` (coverage: `npm test -- --coverage`)
+  - Lint: `npm run lint` (auto-fix: `npm run lint:fix`)
+- Local deploy to a vault
+  - Edit `plugin/.env.local` (see `.env.example`).
+  - `npm run build:deploy` and then reload the plugin in Obsidian.
+- Release (maintainers)
+  - Update version in `plugin/package.json`, then run `npm run version` in `plugin/` to sync `manifest.json` and `versions.json`.
+  - Commit and tag `vX.Y.Z`, push, then create a GitHub release attaching `plugin/manifest.json` and `plugin/main.js`.
 
 ## License
 
