@@ -57,16 +57,16 @@ Our AI doesn't just reformat text - it analyzes context, project relationships, 
 
 ### Privacy-First AI Processing
 
-While using AWS Bedrock for AI capabilities, all processing happens on the user's local machine. No task content leaves the user's environment, ensuring sensitive information remains private unlike cloud-based alternatives.
+We call AWS Bedrock directly from the plugin using a lightweight TypeScript client with retry and strict parsing. No separate proxy/server is used; content flows over HTTPS to Bedrock and is not stored by us.
 
 ## Key Features
 
 ### Core Features
 
-- **One-Command Processing:** Transform raw text into formatted GTD tasks with single command execution
-- **Smart Metadata Detection:** Auto-generate context tags, time estimates, and energy level assessments
-- **Tasks Plugin Compatibility:** Generate properly formatted tasks that work seamlessly with existing Obsidian Tasks workflows
-- **Project Association:** Intelligently link tasks to existing projects and areas of responsibility
+- One-Command Processing: Transform selected text into formatted GTD tasks
+- Smart Metadata Detection: Context tags, time estimates, and energy levels
+- Tasks Plugin Compatibility: Works with existing Tasks workflows
+- Project Association: Link actions to projects when identified
 
 ### AI-Powered Features
 

@@ -49,7 +49,7 @@ export class BedrockClientError extends Error {
   }
 }
 
-export class GTDBedrockClient {
+export class BedrockClient {
   private client: BedrockRuntimeClient;
   private config: BedrockClientConfig;
   private retryConfig: RetryConfig;
@@ -81,34 +81,31 @@ export class GTDBedrockClient {
   }
 
   /**
-   * Send a GTD clarification request to Bedrock
-   * Equivalent to GTDAPIClient.clarifyText() but using AWS SDK directly
+   * Generic text-generation request to Bedrock using a single prompt string.
+   * Use this for arbitrary prompts; callers control the prompt content.
    */
-  async clarifyText(content: string): Promise<BedrockResponse> {
+  async generateText(
+    prompt: string,
+    options?: { temperature?: number; maxTokens?: number; topP?: number }
+  ): Promise<BedrockResponse> {
     const startTime = Date.now();
 
-    try {
-      const request: ConverseCommandInput = {
-        modelId: this.config.modelId,
-        messages: [{
+    const request: ConverseCommandInput = {
+      modelId: this.config.modelId,
+      messages: [
+        {
           role: 'user',
-          content: [{ text: content }]
-        }],
-        inferenceConfig: {
-          temperature: 0.1,
-          maxTokens: 1500,
-          topP: 0.9
-        }
-      };
+          content: [{ text: prompt }],
+        },
+      ],
+      inferenceConfig: {
+        temperature: options?.temperature ?? 0.1,
+        maxTokens: options?.maxTokens ?? 1500,
+        topP: options?.topP ?? 0.9,
+      },
+    };
 
-      return this.makeRequestWithRetry(request, startTime);
-    } catch (error) {
-      throw new BedrockClientError(
-        `GTD clarification failed: ${error.message}`,
-        'CLARIFICATION_ERROR',
-        { originalError: error }
-      );
-    }
+    return this.makeRequestWithRetry(request, startTime);
   }
 
   /**
@@ -422,7 +419,7 @@ export class GTDBedrockClient {
  * Factory function to create Bedrock client with default settings
  * Replaces createGTDAPIClient() for Bedrock usage
  */
-export function createGTDBedrockClient(
+export function createBedrockServiceClient(
   bearerToken: string,
   region = 'us-east-1',
   modelId = 'us.anthropic.claude-sonnet-4-20250514-v1:0',
@@ -430,7 +427,7 @@ export function createGTDBedrockClient(
     timeout?: number;
     retryConfig?: Partial<RetryConfig>;
   }
-): GTDBedrockClient {
+): BedrockClient {
   const config: BedrockClientConfig = {
     bearerToken,
     region,
@@ -438,7 +435,7 @@ export function createGTDBedrockClient(
     timeout: options?.timeout || 30000
   };
 
-  return new GTDBedrockClient(config, options?.retryConfig);
+  return new BedrockClient(config, options?.retryConfig);
 }
 
 /**

@@ -4,7 +4,7 @@
  */
 
 import { GTDPromptGenerator } from './gtd-prompts';
-import { GTDBedrockClient, BedrockResponse, BedrockClientError } from './bedrock-client';
+import { BedrockClient, BedrockResponse, BedrockClientError } from './bedrock-client';
 import { GTDSettings } from './settings';
 import { GTDLogger } from './logger';
 
@@ -47,11 +47,11 @@ export interface ClarificationOptions {
 }
 
 export class GTDClarificationService {
-  private bedrockClient: GTDBedrockClient;
+  private bedrockClient: BedrockClient;
   private settings: GTDSettings;
   private logger = GTDLogger.getInstance();
 
-  constructor(bedrockClient: GTDBedrockClient, settings: GTDSettings) {
+  constructor(bedrockClient: BedrockClient, settings: GTDSettings) {
     this.bedrockClient = bedrockClient;
     this.settings = settings;
   }
@@ -95,7 +95,7 @@ export class GTDClarificationService {
 
       // Step 4: Make Bedrock request (optimization handled in prompt generation)
       const fullPrompt = prompt.systemPrompt + '\n\n' + prompt.userPrompt;
-      const bedrockResponse = await this.bedrockClient.clarifyText(fullPrompt);
+      const bedrockResponse = await this.bedrockClient.generateText(fullPrompt);
 
       // Step 5: Parse and validate response
       const clarificationResult = this.parseBedrockResponse(
@@ -634,7 +634,7 @@ export class GTDClarificationService {
  * Factory function to create clarification service
  */
 export function createClarificationService(settings: GTDSettings): GTDClarificationService {
-  const bedrockClient = new GTDBedrockClient({
+  const bedrockClient = new BedrockClient({
     bearerToken: settings.awsBearerToken,
     region: settings.awsRegion,
     modelId: settings.awsBedrockModelId,

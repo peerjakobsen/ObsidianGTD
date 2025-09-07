@@ -2,51 +2,49 @@
 
 ## Core Architecture
 
-- **Application Framework:** Obsidian Plugin API + TypeScript
-- **Backend Service:** None (direct AWS Bedrock via AWS JavaScript SDK)
-- **AI Service:** AWS Bedrock (Claude)
-- **Package Manager:** npm or UV
-- **Build Tool:** Rollup (Obsidian standard)
-- **Language:** TypeScript + Python
+- Application: Obsidian plugin (TypeScript)
+- AI: AWS Bedrock (Claude) via AWS JavaScript SDK
+- Backend: None (direct SDK + HTTPS fallback)
+- Build: Rollup + TypeScript
+- Package manager: npm
 
-## Frontend (Obsidian Plugin)
+## Core Modules (Plugin)
 
-- **Plugin Framework:** Obsidian Plugin API
-- **Language:** TypeScript
-- **UI Framework:** Obsidian's built-in components
-- **State Management:** Plugin settings API
-- **Build System:** Rollup with TypeScript
-- **Package Manager:** npm
+- `plugin/src/bedrock-client.ts`: Bedrock client wrapper
+  - `BedrockClient`: retry + HTTP/SDK fallback
+  - `generateText()` and planned `converse()` APIs
+- `plugin/src/clarification-service.ts`: Service layer orchestrating prompts, calls, parsing, and insertion
+- `plugin/src/review-service.ts`: Service layer orchestrating prompts, calls, parsing, and insertion for weekly GTD reviews
+- `plugin/src/gtd-prompts.ts`: Prompt generator for GTD tasks; future prompts for weekly review
 
-## Backend Service
+## UI Layer
 
-- No separate backend server. The plugin calls AWS Bedrock directly using the AWS JavaScript SDK.
+- Commands: “Clarify selected text (GTD)” one-shot flow
+- Planned: Sidebar chat (conversational mode) using the same services
 
 ## AI Integration
 
-- **AI Provider:** AWS Bedrock
-- **Model:** Claude (Anthropic)
-- **Authentication:** AWS credentials
-- **SDK:** AWS JavaScript SDK (`@aws-sdk/client-bedrock-runtime`)
-- **Region:** User configurable (default: us-east-1)
+- Provider: AWS Bedrock
+- Models: Anthropic Claude family (configurable)
+- Auth: Bearer token (Bedrock API key) stored in plugin settings
+- SDK: `@aws-sdk/client-bedrock-runtime`
+- Region: User configurable (default `us-east-1`)
 
 ## Development & Testing
 
-- **Testing Framework:** Jest (plugin); no backend tests
-- **Code Quality:** ESLint, Prettier (frontend), ruff (backend)
-- **Type Checking:** TypeScript compiler, mypy
-- **Git Hooks:** pre-commit
+- Tests: Jest (unit + integration with SDK mocks)
+- Lint/Format: ESLint, Prettier
+- Types: TypeScript compiler
+- CI hooks: pre-commit/CI friendly
 
 ## Deployment & Distribution
 
-- **Plugin Distribution:** Obsidian Community Plugins
-- **Backend Deployment:** Not applicable
-- **Configuration:** Plugin settings panel
-- **Updates:** Obsidian's automatic update system
+- Distribution: Obsidian Community Plugins
+- Configuration: Plugin settings panel
+- Updates: Obsidian’s update mechanism
 
 ## Security & Privacy
 
-- **API Communication:** Direct to AWS Bedrock over HTTPS
-- **Credentials Storage:** Obsidian's secure settings
-- **Data Processing:** Local only (no cloud storage)
-- **AWS Access:** User-provided credentials
+- Transport: HTTPS directly to AWS Bedrock
+- Secrets: Bearer token stored in Obsidian settings; not committed
+- Data: No external storage; processing occurs within the user’s environment

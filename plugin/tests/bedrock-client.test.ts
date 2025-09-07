@@ -12,15 +12,15 @@ import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-r
 import { 
   createBedrockClient, 
   testConverse, 
-  GTDBedrockClient, 
-  createGTDBedrockClient,
+  BedrockClient, 
+  createBedrockServiceClient,
   validateBedrockConfig,
   BedrockClientError
 } from '../src/bedrock-client';
 
 describe('BedrockClient', () => {
   let mockClient: jest.Mocked<BedrockRuntimeClient>;
-  let mockSend: jest.Mock;
+  let mockSend: jest.MockedFunction<any>;
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('BedrockClient', () => {
     originalEnv = { ...process.env };
     
     // Mock AWS SDK client with proper structure
-    mockSend = jest.fn();
+    mockSend = jest.fn() as jest.MockedFunction<any>;
     mockClient = {
       send: mockSend,
     } as any;
@@ -90,7 +90,7 @@ describe('BedrockClient', () => {
       const client = createBedrockClient('test-token');
       
       // Reset the mock to ensure input is properly returned
-      (ConverseCommand as jest.Mock).mockImplementation((params) => ({
+      (ConverseCommand as unknown as jest.Mock).mockImplementation((params) => ({
         input: params,
       }));
       
@@ -164,6 +164,7 @@ describe('BedrockClient', () => {
         region: customRegion,
         apiKey: 'test-token',
       }));
+      expect(client).toBe(mockClient);
     });
   });
 
@@ -182,9 +183,10 @@ describe('BedrockClient', () => {
   describe('GTD Integration Readiness', () => {
     it('should be ready for GTD clarification requests', async () => {
       const client = createBedrockClient('test-token');
+      expect(client).toBe(mockClient);
       
       // Reset the mock to ensure input is properly returned
-      (ConverseCommand as jest.Mock).mockImplementation((params) => ({
+      (ConverseCommand as unknown as jest.Mock).mockImplementation((params) => ({
         input: params,
       }));
       
@@ -201,7 +203,7 @@ describe('BedrockClient', () => {
       
       expect(gtdCommand.input.modelId).toBe('us.anthropic.claude-sonnet-4-20250514-v1:0');
       expect(gtdCommand.input.messages).toHaveLength(1);
-      expect(gtdCommand.input.messages[0].content[0].text).toContain('GTD actions');
+      expect(gtdCommand.input.messages?.[0]?.content?.[0]?.text).toContain('GTD actions');
     });
   });
 });
@@ -215,7 +217,7 @@ describe('BedrockClient Error Scenarios', () => {
     originalEnv = { ...process.env };
     
     mockClient = {
-      send: jest.fn(),
+      send: jest.fn() as jest.MockedFunction<any>,
     } as any;
     
     (BedrockRuntimeClient as jest.Mock).mockImplementation(() => mockClient);
@@ -279,7 +281,7 @@ describe('BedrockClient Type Safety', () => {
     
     // Set up mock client for this test group
     mockClient = {
-      send: jest.fn(),
+      send: jest.fn() as jest.MockedFunction<any>,
     } as any;
     
     (BedrockRuntimeClient as jest.Mock).mockImplementation(() => mockClient);
@@ -300,7 +302,7 @@ describe('BedrockClient Type Safety', () => {
     const client = createBedrockClient('test-token');
     
     // Reset the mock to ensure input is properly returned
-    (ConverseCommand as jest.Mock).mockImplementation((params) => ({
+    (ConverseCommand as unknown as jest.Mock).mockImplementation((params) => ({
       input: params,
     }));
     
@@ -313,16 +315,16 @@ describe('BedrockClient Type Safety', () => {
   });
 });
 
-describe('GTDBedrockClient', () => {
+describe('BedrockClient (wrapper)', () => {
   let mockClient: jest.Mocked<BedrockRuntimeClient>;
-  let mockSend: jest.Mock;
+  let mockSend: jest.MockedFunction<any>;
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
     jest.clearAllMocks();
     originalEnv = { ...process.env };
     
-    mockSend = jest.fn();
+    mockSend = jest.fn() as jest.MockedFunction<any>;
     mockClient = {
       send: mockSend,
     } as any;
@@ -335,15 +337,15 @@ describe('GTDBedrockClient', () => {
     jest.resetAllMocks();
   });
 
-  describe('GTD Client Creation', () => {
-    it('should create GTDBedrockClient with required configuration', () => {
-      const client = createGTDBedrockClient(
+  describe('Wrapper Client Creation', () => {
+    it('should create BedrockClient with required configuration', () => {
+      const client = createBedrockServiceClient(
         'test-bearer-token',
         'us-east-1',
         'us.anthropic.claude-sonnet-4-20250514-v1:0'
       );
       
-      expect(client).toBeInstanceOf(GTDBedrockClient);
+      expect(client).toBeInstanceOf(BedrockClient);
       expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
         region: 'us-east-1',
         apiKey: 'test-bearer-token',
@@ -351,7 +353,7 @@ describe('GTDBedrockClient', () => {
     });
 
     it('should use default values for optional parameters', () => {
-      const client = createGTDBedrockClient('test-token');
+      const client = createBedrockServiceClient('test-token');
       const config = client.getConfig();
       
       expect(config.region).toBe('us-east-1');
@@ -361,14 +363,14 @@ describe('GTDBedrockClient', () => {
 
     it('should set bearer token in environment', () => {
       const bearerToken = 'test-bearer-token-123';
-      createGTDBedrockClient(bearerToken);
+      createBedrockServiceClient(bearerToken);
       
       expect(process.env.BEDROCK_API_KEY).toBe(bearerToken);
     });
   });
 
-  describe('GTD Clarification', () => {
-    it('should handle successful clarification request', async () => {
+  describe('Text Generation', () => {
+    it('should handle successful text generation request', async () => {
       const mockResponse = {
         output: {
           message: {
@@ -390,8 +392,8 @@ describe('GTDBedrockClient', () => {
 
       mockSend.mockResolvedValueOnce(mockResponse);
 
-      const client = createGTDBedrockClient('test-token');
-      const result = await client.clarifyText('Call John about the website project');
+      const client = createBedrockServiceClient('test-token');
+      const result = await client.generateText('Call John about the website project');
 
       expect(result.status).toBe('success');
       expect(result.metadata.tokens_used).toBe(150);
@@ -399,7 +401,7 @@ describe('GTDBedrockClient', () => {
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle clarification errors with retry logic', async () => {
+    it('should handle generation errors with retry logic', async () => {
       // First attempt fails with throttling error
       const throttleError = new Error('ThrottlingException');
       throttleError.name = 'ThrottlingException';
@@ -420,8 +422,8 @@ describe('GTDBedrockClient', () => {
       };
       mockSend.mockResolvedValueOnce(mockResponse);
 
-      const client = createGTDBedrockClient('test-token');
-      const result = await client.clarifyText('Test request');
+      const client = createBedrockServiceClient('test-token');
+      const result = await client.generateText('Test request');
 
       expect(result.status).toBe('success');
       expect(result.result).toBe('Success after retry');
@@ -433,11 +435,11 @@ describe('GTDBedrockClient', () => {
       error.name = 'ServiceUnavailableException';
       mockSend.mockRejectedValue(error);
 
-      const client = createGTDBedrockClient('test-token', 'us-east-1', 'us.anthropic.claude-sonnet-4-20250514-v1:0', {
+      const client = createBedrockServiceClient('test-token', 'us-east-1', 'us.anthropic.claude-sonnet-4-20250514-v1:0', {
         retryConfig: { maxRetries: 1, baseDelayMs: 10, maxDelayMs: 10 } // Fast retries for testing
       });
       
-      await expect(client.clarifyText('Test request')).rejects.toThrow(BedrockClientError);
+      await expect(client.generateText('Test request')).rejects.toThrow(BedrockClientError);
       expect(mockSend).toHaveBeenCalledTimes(2); // Initial + 1 retry
     }, 10000);
   });
@@ -462,7 +464,7 @@ describe('GTDBedrockClient', () => {
         new Promise(resolve => setTimeout(() => resolve(mockResponse), 10))
       );
 
-      const client = createGTDBedrockClient('test-token');
+      const client = createBedrockServiceClient('test-token');
       const result = await client.testConnection();
 
       expect(result.success).toBe(true);
@@ -478,7 +480,7 @@ describe('GTDBedrockClient', () => {
         new Promise((_, reject) => setTimeout(() => reject(error), 10))
       );
 
-      const client = createGTDBedrockClient('test-token');
+      const client = createBedrockServiceClient('test-token');
       const result = await client.testConnection();
 
       expect(result.success).toBe(false);
@@ -489,7 +491,7 @@ describe('GTDBedrockClient', () => {
 
   describe('Configuration Management', () => {
     it('should update configuration', () => {
-      const client = createGTDBedrockClient('test-token');
+      const client = createBedrockServiceClient('test-token');
       
       client.updateConfig({
         bearerToken: 'new-token',
@@ -504,7 +506,7 @@ describe('GTDBedrockClient', () => {
     });
 
     it('should update retry configuration', () => {
-      const client = createGTDBedrockClient('test-token');
+      const client = createBedrockServiceClient('test-token');
       
       client.updateRetryConfig({
         maxRetries: 5,
@@ -517,7 +519,7 @@ describe('GTDBedrockClient', () => {
       mockSend.mockRejectedValue(error);
 
       // This should attempt 6 calls (initial + 5 retries)
-      expect(client.clarifyText('test')).rejects.toThrow();
+      expect(client.generateText('test')).rejects.toThrow();
     });
   });
 

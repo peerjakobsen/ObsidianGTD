@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { GTDClarificationService, GTDActionType, ClarificationResult, createClarificationService } from '../src/clarification-service';
-import { GTDBedrockClient } from '../src/bedrock-client';
+import { BedrockClient } from '../src/bedrock-client';
 import { GTDSettings } from '../src/settings';
 
 // Mock the dependencies
@@ -9,7 +9,7 @@ jest.mock('../src/gtd-prompts');
 
 describe('GTDClarificationService', () => {
   let service: GTDClarificationService;
-  let mockBedrockClient: jest.Mocked<GTDBedrockClient>;
+  let mockBedrockClient: jest.Mocked<BedrockClient>;
   let mockSettings: GTDSettings;
 
   beforeEach(() => {
@@ -23,6 +23,7 @@ describe('GTDClarificationService', () => {
 
     // Create mock Bedrock client
     mockBedrockClient = {
+      generateText: jest.fn(),
       clarifyText: jest.fn(),
       testConnection: jest.fn(),
       updateConfig: jest.fn(),
@@ -84,7 +85,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Call John about project and send email to team');
 
@@ -138,7 +139,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Mixed actions text');
 
@@ -185,7 +186,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Test text');
 
@@ -211,7 +212,7 @@ describe('GTDClarificationService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Input text cannot be empty');
       expect(result.actions).toHaveLength(0);
-      expect(mockBedrockClient.clarifyText).not.toHaveBeenCalled();
+      expect(mockBedrockClient.generateText).not.toHaveBeenCalled();
     });
 
     it('should handle API errors', async () => {
@@ -228,7 +229,7 @@ describe('GTDClarificationService', () => {
       });
 
       const apiError = new Error('API request failed');
-      mockBedrockClient.clarifyText.mockRejectedValue(apiError);
+      mockBedrockClient.generateText.mockRejectedValue(apiError);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -260,7 +261,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -294,7 +295,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+      mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -431,7 +432,7 @@ describe('GTDClarificationService', () => {
         userPrompt: 'User prompt'
       });
 
-      mockBedrockClient.clarifyText.mockResolvedValue({
+      mockBedrockClient.generateText.mockResolvedValue({
         result: '[]',
         status: 'success',
         metadata: {
@@ -449,7 +450,7 @@ describe('GTDClarificationService', () => {
       });
 
       expect(GTDPromptGenerator.generatePrompt).toHaveBeenCalledWith('Test text', 'email');
-      expect(mockBedrockClient.clarifyText).toHaveBeenCalledWith(
+      expect(mockBedrockClient.generateText).toHaveBeenCalledWith(
         expect.any(String)
       );
     });
@@ -458,7 +459,7 @@ describe('GTDClarificationService', () => {
 
 describe('GTDClarificationService - Metadata Extraction', () => {
   let service: GTDClarificationService;
-  let mockBedrockClient: jest.Mocked<GTDBedrockClient>;
+  let mockBedrockClient: jest.Mocked<BedrockClient>;
   let mockSettings: GTDSettings;
 
   beforeEach(() => {
@@ -559,7 +560,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test inbox text');
 
@@ -613,7 +614,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -657,7 +658,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -712,7 +713,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -770,7 +771,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -814,7 +815,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -853,7 +854,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -903,7 +904,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Complex task with both metadata');
 
@@ -967,7 +968,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
+        mockBedrockClient.generateText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Partial metadata task');
 
