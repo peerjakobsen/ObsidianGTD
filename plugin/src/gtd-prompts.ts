@@ -4,7 +4,10 @@
  */
 
 export interface GTDPromptTemplate {
+  // Back-compat joined system prompt
   systemPrompt: string;
+  // Preferred layered system persona: base + variant + optional addenda
+  systemPromptParts?: string[];
   userPrompt: string;
 }
 
@@ -15,6 +18,9 @@ export interface GTDInputContext {
   hasLongTermIndicator: boolean;
   textLength: number;
 }
+
+// Prompt kinds supported by the assistant UI
+export type PromptKind = 'clarify' | 'weekly_review_next_actions' | 'weekly_review_waiting_for' | 'weekly_review_someday_maybe';
 
 export class GTDPromptGenerator {
   /**
@@ -43,6 +49,11 @@ Quick tasks: #5m, #10m, #15m
 Medium tasks: #30m, #45m, #1h
 Longer tasks: #2h, #3h, #4h
 
+CLASSIFICATION RULES:
+- If the next step is for someone else to do (you are waiting on them), classify it as waiting_for and include the tag #waiting.
+- If the item is not actionable right now or is a “maybe later,” classify it as someday_maybe and include the tag #someday.
+- Otherwise classify as next_action with no #waiting or #someday tag.
+
 Response format: Return a JSON array of actions with the following structure:
 [
   {
@@ -63,19 +74,29 @@ Important guidelines:
 - Estimate time based on task complexity and your experience
 - If something is unclear or needs more information, create a next action to clarify it
 - Break down large or vague items into smaller, concrete actions
-- Use authentic GTD language and categories`;
+  - Use authentic GTD language and categories`;
+
+  // Clarify task variant (kept compact; schema stays in base)
+  private static readonly CLARIFY_TASK_VARIANT = `TASK: Clarify the provided text into concrete GTD items. Break down vague items, classify as next_action/waiting_for/someday_maybe, infer context and time estimates, and include helpful tags.`;
 
   /**
    * Generate optimized prompt based on input context analysis
    */
   static generatePrompt(inboxText: string, inputType?: string): GTDPromptTemplate {
     const context = this.analyzeInputContext(inboxText, inputType);
-    const optimizedSystemPrompt = this.optimizeSystemPrompt(context);
+    const addendum = this.buildOptimizations(context);
+    const parts = [
+      this.BASE_SYSTEM_PROMPT,
+      this.CLARIFY_TASK_VARIANT,
+    ] as string[];
+    if (addendum.trim()) parts.push(addendum.trim());
+
     const contextualUserPrompt = this.generateContextualUserPrompt(inboxText, context);
 
     return {
-      systemPrompt: optimizedSystemPrompt,
-      userPrompt: contextualUserPrompt
+      systemPrompt: parts.join('\n\n'),
+      systemPromptParts: parts,
+      userPrompt: contextualUserPrompt,
     };
   }
 
@@ -99,7 +120,7 @@ Important guidelines:
   /**
    * Optimize system prompt based on input context
    */
-  private static optimizeSystemPrompt(context: GTDInputContext): string {
+  private static buildOptimizations(context: GTDInputContext): string {
     let optimizations = '';
 
     // Add time-specific guidance
@@ -130,7 +151,7 @@ Important guidelines:
         break;
     }
 
-    return this.BASE_SYSTEM_PROMPT + optimizations;
+    return optimizations;
   }
 
   /**
@@ -202,6 +223,11 @@ Return the results as a valid JSON array following the specified format.`;
     return templates[inputType] || {};
   }
 
+  // Expose base persona for prompt registry assembly
+  static getBaseSystemPrompt(): string {
+    return this.BASE_SYSTEM_PROMPT;
+  }
+
   /**
    * Validate and sanitize inbox text before processing
    */
@@ -271,5 +297,103 @@ Return the results as a valid JSON array following the specified format.`;
 
     // Return found contexts, or default to @computer if none found
     return contexts.length > 0 ? contexts : ['@computer'];
+  }
+}
+
+/**
+ * Alias export: prefer calling this Clarify in higher-level code,
+ * while retaining GTDPromptGenerator for backward compatibility.
+ */
+export const Clarify = GTDPromptGenerator;
+
+/**
+ * Weekly Review: Next Actions variant (layered with base persona; no schema duplication)
+ */
+const WEEKLY_REVIEW_NEXTACTIONS_VARIANT = `WEEKLY REVIEW – NEXT ACTIONS: Improve the quality of next actions.
+
+Apply these checks:
+1) Stale items (>14 days): add #stale; consider rescoping.
+2) Project candidates: if outcome-like, add #project-candidate and provide a clear next action.
+3) Missing metadata: infer context and time_estimate where absent.
+4) Quick wins: tag <=15m items as #quickwin.
+5) Clarity: rewrite vague items to specific, verb-first actions.`;
+
+function generateWeeklyReviewNextActionsUserPrompt(inputText: string): string {
+  return `Weekly Review – Next Actions
+
+Review and improve the following next actions (they may be in Markdown list/task format). Apply the quality checks described and return only the improved JSON array using the specified schema.
+
+"""
+${inputText}
+"""`;
+}
+
+// Weekly Review: Waiting For
+const WEEKLY_REVIEW_WAITING_VARIANT = `WEEKLY REVIEW – WAITING FOR: Triage waiting items and add follow-ups when needed.
+
+Apply these checks:
+1) Aging items (>14 days): tag #stale; consider adding a follow-up next action.
+2) Missing follow-ups: create explicit next_action to nudge or check in.
+3) Clarity/contacts: make who/what is awaited clear; include contact info if present.
+4) Metadata completeness: infer context and time_estimate when missing.
+5) Keep valid waiting items as type=waiting_for; promote only when the next move is yours.`;
+
+function generateWeeklyReviewWaitingUserPrompt(inputText: string): string {
+  return `Weekly Review – Waiting For
+
+Review the following waiting items. Improve clarity, add follow-up next actions where needed, and return only the JSON array (waiting items and any new follow-ups) using the schema.
+
+"""
+${inputText}
+"""`;
+}
+
+// Weekly Review: Someday/Maybe
+const WEEKLY_REVIEW_SOMEDAY_VARIANT = `WEEKLY REVIEW – SOMEDAY/MAYBE: Triage and promote when ready.
+
+Apply these checks:
+1) Promote ready items to specific next_action(s) with verb, context, and time_estimate.
+2) Keep not-ready items as type=someday_maybe with #someday.
+3) Project candidates: add #project-candidate and provide a first next action when appropriate.
+4) Improve clarity while preserving intent.`;
+
+function generateWeeklyReviewSomedayUserPrompt(inputText: string): string {
+  return `Weekly Review – Someday/Maybe
+
+Triage the following someday/maybe items. Promote ready ones to concrete next actions and keep others as someday/maybe. Return only the JSON array using the schema.
+
+"""
+${inputText}
+"""`;
+}
+
+/**
+ * Registry for prompt kinds
+ */
+export function generatePromptFor(kind: PromptKind, text: string, inputType?: string): GTDPromptTemplate {
+  switch (kind) {
+    case 'clarify':
+      return GTDPromptGenerator.generatePrompt(text, inputType);
+    case 'weekly_review_next_actions':
+      return {
+        systemPromptParts: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_NEXTACTIONS_VARIANT],
+        systemPrompt: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_NEXTACTIONS_VARIANT].join('\n\n'),
+        userPrompt: generateWeeklyReviewNextActionsUserPrompt(text),
+      };
+    case 'weekly_review_waiting_for':
+      return {
+        systemPromptParts: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_WAITING_VARIANT],
+        systemPrompt: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_WAITING_VARIANT].join('\n\n'),
+        userPrompt: generateWeeklyReviewWaitingUserPrompt(text),
+      };
+    case 'weekly_review_someday_maybe':
+      return {
+        systemPromptParts: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_SOMEDAY_VARIANT],
+        systemPrompt: [GTDPromptGenerator.getBaseSystemPrompt(), WEEKLY_REVIEW_SOMEDAY_VARIANT].join('\n\n'),
+        userPrompt: generateWeeklyReviewSomedayUserPrompt(text),
+      };
+    default:
+      // Fallback to clarify
+      return GTDPromptGenerator.generatePrompt(text, inputType);
   }
 }

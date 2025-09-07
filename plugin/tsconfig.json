@@ -13,9 +13,22 @@
     "strictNullChecks": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@aws-sdk/client-bedrock-runtime": [
+        "tests/type-stubs/aws-sdk/client-bedrock-runtime.d.ts"
+      ],
+      "@smithy/*": [
+        "tests/type-stubs/@smithy/*"
+      ]
+    },
+    "typeRoots": [
+      "tests/type-stubs"
+    ],
+    "types": [],
     "lib": [
       "DOM",
-      "ES6"
+      "ES2017"
     ]
   },
   "include": [
@@ -23,6 +36,7 @@
   ],
   "exclude": [
     "tests/**/*.ts",
-    "node_modules"
+    "node_modules",
+    "src/bedrock-client.ts"
   ]
 }

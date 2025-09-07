@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { GTDPromptGenerator, GTDPromptTemplate } from '../src/gtd-prompts';
+import { GTDPromptGenerator, GTDPromptTemplate, generatePromptFor } from '../src/gtd-prompts';
 
 describe('GTDPromptGenerator', () => {
   describe('Basic Prompt Generation', () => {
@@ -456,5 +456,32 @@ describe('GTDPromptGenerator', () => {
       expect(contexts).toContain('@computer');
       expect(contexts).toHaveLength(1);
     });
+  });
+});
+
+describe('Prompt Layering', () => {
+  it('provides systemPromptParts with base + variant for each kind', () => {
+    const kinds: Array<[string, string]> = [
+      ['clarify', 'Clarify'],
+      ['weekly_review_next_actions', 'WEEKLY REVIEW'],
+      ['weekly_review_waiting_for', 'WEEKLY REVIEW'],
+      ['weekly_review_someday_maybe', 'WEEKLY REVIEW'],
+    ];
+
+    kinds.forEach(([kind, marker]) => {
+      const prompt: any = generatePromptFor(kind as any, 'Sample text');
+      expect(Array.isArray(prompt.systemPromptParts)).toBe(true);
+      expect(prompt.systemPromptParts.length).toBeGreaterThanOrEqual(2);
+      expect(prompt.systemPromptParts[0]).toContain('Getting Things Done (GTD)');
+      expect(prompt.systemPromptParts[1]).toContain(marker);
+    });
+  });
+
+  it('weekly review userPrompt does not restate schema details', () => {
+    const p = generatePromptFor('weekly_review_next_actions', 'Do some tasks');
+    const txt = p.userPrompt;
+    expect(txt).not.toContain('"time_estimate"');
+    expect(txt).not.toContain('@computer');
+    expect(txt).not.toContain('"type"');
   });
 });

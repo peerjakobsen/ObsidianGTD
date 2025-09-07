@@ -53,6 +53,7 @@ function deploy() {
     const filesToDeploy = [
       { src: 'manifest.json', required: true },
       { src: 'main.js', required: true },
+      { src: 'styles.css', required: false },
       { src: '.hotreload', required: false },
     ];
 

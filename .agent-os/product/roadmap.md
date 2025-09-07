@@ -54,14 +54,15 @@
 
 ### Features
 
-- [ ] `BedrockClient.converse({ system, messages, inferenceConfig })` API `M`
-- [ ] Sidebar chat view (ItemView) with history, input, and status `L`
-- [ ] Preload current selection as first user message (auto-send) `S`
-- [ ] Controls: Send, Insert Tasks, Clear `S`
-- [ ] Output modes: strict JSON every turn (default) or free-form chat with JSON-only on “Insert Tasks” `M`
+- [x] `BedrockClient.converse({ system, messages, inferenceConfig })` API `M`
+- [x] Sidebar chat view (ItemView) with history, input, and status `L`
+- [x] Pre-fill current selection into input (no auto-send); prompt dropdown (default Clarify) `S`
+- [x] Controls: Send, Insert Tasks, New Chat, Close (×), Compact toggle `S`
+- [x] Output mode: free-form chat; JSON-only enforced on “Insert Tasks” via minimal final instruction `M`
+- [ ] Strict JSON every turn (opt-in) `M`
 - [ ] Thread scope options: per-note vs. global; auto-clear on file change `M`
-- [ ] Settings: model params (temperature, tokens), auto-insert defaults, thread scope `S`
-- [ ] Error handling: timeouts/retries surfaced in UI; progress indicator `S`
+- [ ] Settings (chat): model params (temperature, tokens), auto-insert defaults, thread scope `S`
+- [x] Error handling: surfaced in UI with status + notices; progress indicator `S`
 
 ### Dependencies
 
@@ -75,6 +76,9 @@
 - Parse assistant replies (JSON array, code block tolerant); surface parse errors politely
 - Reuse existing insertion logic and `convertToTasksFormat`
 - Minimal telemetry for failure categories (timeout, parse, network)
+- Prompt architecture: base GTD persona + small task variants layered as system array (Clarify, Weekly Review types)
+- Prompt registry + dropdown selector in sidebar
+- Strictness: avoid schema duplication; add a tiny “JSON array only” instruction before inserts
 
 ### Benefits
 
@@ -108,26 +112,23 @@
 
 ### Core Review Commands
 
-- [ ] **Review Next Actions command** `L`
+- [x] Review Next Actions (prompt-based in chat) `M`
  - Detect stale actions (>14 days)
  - Identify actions that are actually projects
- - Find missing metadata (context, time, energy)
+ - Find missing metadata (context, time)
  - Highlight quick wins (≤15min tasks)
  - Suggest clarity improvements for vague actions
 
-- [ ] **Review Waiting For command** `M`
+- [x] Review Waiting For (prompt-based in chat) `M`
  - Flag aging items (>2 weeks)
  - Check for unclear ownership
  - Suggest follow-up actions
- - Identify patterns (bottleneck people/departments)
 
-- [ ] **Review Someday/Maybe command** `M`
+- [x] Review Someday/Maybe (prompt-based in chat) `M`
  - Identify items to activate now
- - Flag items for deletion (>6 months old)
- - Group related items into potential projects
- - Seasonal activation suggestions
+ - Mark others as #someday; project-candidate tagging
 
-- [ ] **Review Projects command** `L`
+- [ ] Review Projects command (note/file scanning) `L`
  - Detect projects without next actions
  - Identify stalled projects
  - Check for unclear outcomes
@@ -135,35 +136,34 @@
 
 ### Analysis Engine
 
-- [ ] **Task parser for markdown format** `M`
+- [ ] Task parser for markdown format (file-based analysis) `M`
  - Extract tasks with Obsidian Tasks format
  - Parse dates, tags, and metadata
  - Build structured task objects for analysis
 
-- [ ] **Review prompt templates** `S`
- - Customizable prompts per list type
- - Context-aware analysis rules
- - User-configurable review criteria
+- [x] Review prompt templates (base persona + list variants) `S`
+ - Context-aware analysis rules encoded via prompt variants
+ - Future: user-configurable review criteria
 
-- [ ] **Pattern detection system** `L`
+- [ ] Pattern detection system `L`
  - Track recurring issues across reviews
  - Identify procrastination patterns
  - Bottleneck analysis (people, contexts, projects)
 
 ### Output & Reporting
 
-- [ ] **Review insights modal** `M`
+- [ ] Review insights modal `M`
  - Display categorized findings
  - Show actionable recommendations
  - Quick action buttons (move, modify, delete)
 
-- [ ] **Markdown report generation** `M`
+- [ ] Markdown report generation `M`
  - Statistics summary
  - Prioritized action items
  - Suggested changes with diffs
  - Executive summary for comprehensive review
 
-- [ ] **Comprehensive weekly review command** `L`
+- [ ] Comprehensive weekly review command `L`
  - Run all reviews in sequence
  - Generate unified dashboard
  - Cross-list insights (e.g., waiting-for items that block next actions)
