@@ -18,14 +18,14 @@
   - [x] 2.5 Handle parse errors with fallback action and clear messaging
   - [x] 2.6 Verify all tests pass
 
-- [ ] 3. Sidebar chat UI (Obsidian ItemView)
-  - [ ] 3.1 Write tests for view controller logic (handlers call service methods, disabled states)
-  - [ ] 3.2 Scaffold `ItemView` (id: `gtd-assistant-view`) with message list, input, Send/Insert/Clear
-  - [ ] 3.3 Preload selection on first open and auto-send initial message
-  - [ ] 3.4 Wire Send: disable during request; show status/errors
-  - [ ] 3.5 Wire Insert Tasks: call `prepareForInsert()`, format via `convertToTasksFormat`, insert at cursor
-  - [ ] 3.6 Wire Clear: reset thread and UI
-  - [ ] 3.7 Verify all tests pass
+- [x] 3. Sidebar chat UI (Obsidian ItemView)
+  - [x] 3.1 Write tests for view controller logic (handlers call service methods, disabled states)
+  - [x] 3.2 Scaffold `ItemView` (id: `gtd-assistant-view`) with message list, input, Send/Insert/Clear
+  - [x] 3.3 Preload selection on first open and auto-send initial message
+  - [x] 3.4 Wire Send: disable during request; show status/errors
+  - [x] 3.5 Wire Insert Tasks: call `prepareForInsert()`, format via `convertToTasksFormat`, insert at cursor
+  - [x] 3.6 Wire Clear: reset thread and UI
+  - [x] 3.7 Verify all tests pass
 
 - [ ] 4. Settings support
   - [ ] 4.1 Write tests for new settings defaults/persistence (`strictJsonMode`, `temperature`, `maxTokens`)

@@ -4,6 +4,7 @@ import { GTDSettingTab } from './settings-tab';
 import { GTDClarificationService, createClarificationService } from './clarification-service';
 import { logger } from './logger';
 import { createBedrockClient } from './bedrock-client';
+import { GTDAssistantView, GTD_ASSISTANT_VIEW_TYPE } from './assistant-view';
 
 export default class ObsidianGTDPlugin extends Plugin {
   settings: GTDSettings;
@@ -61,6 +62,18 @@ export default class ObsidianGTDPlugin extends Plugin {
     // Add settings tab
     this.addSettingTab(new GTDSettingTab(this.app, this));
 
+    // Register assistant sidebar view
+    (this as any).registerView?.(GTD_ASSISTANT_VIEW_TYPE, (leaf: any) => new GTDAssistantView(leaf, this));
+
+    // Command to open the assistant sidebar
+    this.addCommand({
+      id: 'open-gtd-assistant',
+      name: 'Open GTD Assistant (Sidebar)',
+      callback: async () => {
+        await this.activateAssistantView();
+      }
+    });
+
     logger.info('Plugin', 'GTD Assistant plugin loaded successfully');
     
     // Force AWS SDK bundling - create a test client but don't use it
@@ -86,6 +99,19 @@ export default class ObsidianGTDPlugin extends Plugin {
     // Update clarification service with new settings
     if (this.clarificationService) {
       this.clarificationService.updateSettings(this.settings);
+    }
+  }
+
+  private async activateAssistantView() {
+    try {
+      const workspace: any = (this as any).app?.workspace;
+      const rightLeaf = workspace?.getRightLeaf ? workspace.getRightLeaf(false) : workspace?.getLeaf?.(true);
+      const leaf = rightLeaf || workspace?.getLeaf?.(true);
+      if (!leaf?.setViewState) return;
+      await leaf.setViewState({ type: GTD_ASSISTANT_VIEW_TYPE, active: true });
+      workspace?.revealLeaf?.(leaf);
+    } catch (e) {
+      // In tests, workspace APIs may not exist
     }
   }
 

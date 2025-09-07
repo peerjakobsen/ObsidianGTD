@@ -15,6 +15,10 @@ export class Plugin {
     return {};
   }
 
+  registerView() {
+    return {};
+  }
+
   addSettingTab() {
     return {};
   }
@@ -94,3 +98,22 @@ export class Setting {
 export const Notice = jest.fn().mockImplementation((message: string, timeout?: number) => ({
   hide: jest.fn()
 }));
+
+export class ItemView {
+  containerEl: HTMLElement;
+  leaf: any;
+  constructor(leaf: any) {
+    this.leaf = leaf;
+    this.containerEl = leaf?.containerEl || document.createElement('div');
+  }
+  getViewType(): string { return ''; }
+  getDisplayText(): string { return ''; }
+  async onOpen(): Promise<void> {}
+  async onClose(): Promise<void> {}
+}
+
+export class WorkspaceLeaf {
+  containerEl: HTMLElement = document.createElement('div');
+  view: any;
+  setViewState = jest.fn();
+}
