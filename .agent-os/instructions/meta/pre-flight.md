@@ -8,6 +8,8 @@ encoding: UTF-8
 
 # Pre-Flight Rules
 
+- For this repository, review `.agent-os/instructions/meta/project-conventions.md` before planning or coding to align with the TS-only, no-server architecture.
+
 - IMPORTANT: For any step that specifies a subagent in the subagent="" XML attribute you MUST use the specified subagent to perform the instructions for that step.
 
 - Process XML blocks sequentially
