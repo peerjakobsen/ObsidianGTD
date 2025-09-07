@@ -10,8 +10,9 @@ if ! gh project list --owner "$OWNER" >/dev/null 2>&1; then
 fi
 
 # Create or find project
-proj_json=$(gh project list --owner "$OWNER" --limit 100 --format json | jq -c)
-proj_id=$(echo "$proj_json" | jq -r --arg t "$TITLE" '.[] | select(.title==$t) | .number' | head -n1)
+proj_id=$(gh project list --owner "$OWNER" --limit 100 --format json \
+  | jq -r --arg t "$TITLE" '.projects[]? | select(.title==$t) | .number' \
+  | head -n1)
 if [[ -z "$proj_id" ]]; then
   proj_id=$(gh project create --owner "$OWNER" --title "$TITLE" --format json | jq -r '.number')
   echo "Created project $TITLE (#$proj_id)"
@@ -21,9 +22,10 @@ fi
 
 # Link repo to project for convenience
 REPO=$(git remote get-url origin | sed -E 's#.*github.com[/:]([^/]+/[^/.]+)(\.git)?#\1#')
-if ! gh project view "$proj_id" --owner "$OWNER" --format json | jq -e --arg repo "$REPO" '.items[]? | .content.repository.nameWithOwner? == $repo' >/dev/null; then
-  gh project link --owner "$OWNER" --project "$proj_id" --repo "$REPO" || true
-fi
+gh project link "$proj_id" --owner "$OWNER" --repo "$REPO" >/dev/null 2>&1 || true
+
+# Resolve project node id for item field updates
+proj_node_id=$(gh project view "$proj_id" --owner "$OWNER" --format json | jq -r '.id')
 
 # Status field + option ids
 status_field_id=$(gh project field-list "$proj_id" --owner "$OWNER" --format json | jq -r '.fields[] | select(.name=="Status") | .id')
@@ -45,12 +47,12 @@ echo "$issues" | jq -c '.[]' | while read -r issue; do
     item_id=$(gh project item-list "$proj_id" --owner "$OWNER" --format json | jq -r --arg url "$url" '.items[] | select(.content.url==$url) | .id')
   fi
   # Set Status field
-  if [[ -n "$item_id" && -n "$status_field_id" ]]; then
+  if [[ -n "$item_id" && -n "$status_field_id" && -n "$proj_node_id" ]]; then
     if [[ "$state" == "CLOSED" || "$state" == "closed" ]]; then
-      gh project item-edit --id "$item_id" --project-id "$proj_id" --field-id "$status_field_id" --single-select-option-id "$opt_done" >/dev/null
+      gh project item-edit --id "$item_id" --project-id "$proj_node_id" --field-id "$status_field_id" --single-select-option-id "$opt_done" >/dev/null
       echo "Added + set Done: $url"
     else
-      gh project item-edit --id "$item_id" --project-id "$proj_id" --field-id "$status_field_id" --single-select-option-id "$opt_todo" >/dev/null
+      gh project item-edit --id "$item_id" --project-id "$proj_node_id" --field-id "$status_field_id" --single-select-option-id "$opt_todo" >/dev/null
       echo "Added + set Todo: $url"
     fi
   fi
