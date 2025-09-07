@@ -54,6 +54,13 @@ CLASSIFICATION RULES:
 - If the item is not actionable right now or is a “maybe later,” classify it as someday_maybe and include the tag #someday.
 - Otherwise classify as next_action with no #waiting or #someday tag.
 
+TAGGING RULES (STRICT):
+- Only include GTD process tags: #waiting, #someday.
+- During weekly review variants you may also use: #quickwin, #stale, #project-candidate.
+- Project tags, when used, must follow the format: #project/<slug> (e.g., #project/buy-new-coffee-table). Prefer filling the "project" field; only add a project tag if explicitly needed.
+- Do NOT add domain/topic tags (e.g., #furniture, #home_improvement) and do NOT add emojis.
+    - Do NOT include #task; the system handles internal tagging.
+
 Response format: Return a JSON array of actions with the following structure:
 [
   {
@@ -63,7 +70,7 @@ Response format: Return a JSON array of actions with the following structure:
     "project": "Related project name (if applicable)",
     "due_date": "YYYY-MM-DD (if applicable)",
     "time_estimate": "#5m|#10m|#15m|#30m|#45m|#1h|#2h|#3h|#4h",
-    "tags": ["#tag1", "#tag2"]
+    "tags": ["#waiting" | "#someday" | "#quickwin" | "#stale" | "#project-candidate" | "#project/<slug>"]
   }
 ]
 
@@ -77,7 +84,7 @@ Important guidelines:
   - Use authentic GTD language and categories`;
 
   // Clarify task variant (kept compact; schema stays in base)
-  private static readonly CLARIFY_TASK_VARIANT = `TASK: Clarify the provided text into concrete GTD items. Break down vague items, classify as next_action/waiting_for/someday_maybe, infer context and time estimates, and include helpful tags.`;
+  private static readonly CLARIFY_TASK_VARIANT = `TASK: Clarify the provided text into concrete GTD items. Break down vague items, classify as next_action/waiting_for/someday_maybe, infer context and time estimates. Include only GTD tags described in TAGGING RULES (no domain/topic tags).`;
 
   /**
    * Generate optimized prompt based on input context analysis
@@ -181,7 +188,7 @@ Break this down into specific, actionable next actions. For each action, determi
 - How much time it will likely take (#5m, #10m, #15m, #30m, #45m, #1h, #2h, #3h, #4h)
 - What project or outcome it relates to
 - Any due dates or scheduling needed
-- Relevant tags for organization
+- Tags: only GTD process tags (#waiting, #someday; weekly review may add #quickwin, #stale, #project-candidate). No domain/topic tags (e.g., #furniture). For project tags use #project/<slug> only when explicitly needed.
 
 CONTEXT GUIDANCE: Choose contexts based on where/how the action must be performed:
 - Use @phone for calls and voice communication
@@ -316,7 +323,8 @@ Apply these checks:
 2) Project candidates: if outcome-like, add #project-candidate and provide a clear next action.
 3) Missing metadata: infer context and time_estimate where absent.
 4) Quick wins: tag <=15m items as #quickwin.
-5) Clarity: rewrite vague items to specific, verb-first actions.`;
+5) Clarity: rewrite vague items to specific, verb-first actions.
+6) Tagging: only GTD tags (#quickwin, #stale, #project-candidate) where applicable; no domain/topic tags; project tags as #project/<slug> only if needed.`;
 
 function generateWeeklyReviewNextActionsUserPrompt(inputText: string): string {
   return `Weekly Review – Next Actions
@@ -336,7 +344,8 @@ Apply these checks:
 2) Missing follow-ups: create explicit next_action to nudge or check in.
 3) Clarity/contacts: make who/what is awaited clear; include contact info if present.
 4) Metadata completeness: infer context and time_estimate when missing.
-5) Keep valid waiting items as type=waiting_for; promote only when the next move is yours.`;
+5) Keep valid waiting items as type=waiting_for; promote only when the next move is yours.
+6) Tagging: use only GTD tags (#waiting, plus #quickwin/#stale/#project-candidate when relevant); no domain/topic tags; project tags as #project/<slug> only if needed.`;
 
 function generateWeeklyReviewWaitingUserPrompt(inputText: string): string {
   return `Weekly Review – Waiting For
@@ -355,7 +364,8 @@ Apply these checks:
 1) Promote ready items to specific next_action(s) with verb, context, and time_estimate.
 2) Keep not-ready items as type=someday_maybe with #someday.
 3) Project candidates: add #project-candidate and provide a first next action when appropriate.
-4) Improve clarity while preserving intent.`;
+4) Improve clarity while preserving intent.
+5) Tagging: only GTD tags (#someday, and optionally #project-candidate/#quickwin/#stale); no domain/topic tags; project tags as #project/<slug> only if needed.`;
 
 function generateWeeklyReviewSomedayUserPrompt(inputText: string): string {
   return `Weekly Review – Someday/Maybe

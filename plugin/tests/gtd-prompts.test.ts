@@ -22,6 +22,7 @@ describe('GTDPromptGenerator', () => {
       expect(prompt.systemPrompt).toContain('"context"');
       expect(prompt.systemPrompt).toContain('"project"');
       expect(prompt.systemPrompt).toContain('"tags"');
+      expect(prompt.systemPrompt).toContain('#project/<slug>');
     });
 
     it('should include GTD principles in system prompt', () => {
@@ -31,6 +32,8 @@ describe('GTDPromptGenerator', () => {
       expect(prompt.systemPrompt).toContain('start with a verb');
       expect(prompt.systemPrompt).toContain('Next Actions, Waiting For, or Someday/Maybe');
       expect(prompt.systemPrompt).toContain('@computer|@phone|@errands|@home|@office|@anywhere');
+      expect(prompt.systemPrompt).toContain('TAGGING RULES (STRICT)');
+      expect(prompt.systemPrompt).toContain('Do NOT add domain/topic tags');
     });
   });
 
@@ -135,6 +138,7 @@ describe('GTDPromptGenerator', () => {
       expect(template.systemPrompt).toContain('EMAIL SPECIALIZATION');
       expect(template.systemPrompt).toContain('responses needed');
       expect(template.userPrompt).toContain('Process this email');
+      expect(template.systemPrompt).toContain('TAGGING RULES');
     });
 
     it('should return meeting notes template', () => {
@@ -143,6 +147,7 @@ describe('GTDPromptGenerator', () => {
       expect(template.systemPrompt).toContain('MEETING NOTES SPECIALIZATION');
       expect(template.systemPrompt).toContain('action items, follow-ups');
       expect(template.userPrompt).toContain('meeting notes');
+      expect(template.systemPrompt).toContain('domain/topic tags');
     });
 
     it('should return note template', () => {
@@ -151,6 +156,7 @@ describe('GTDPromptGenerator', () => {
       expect(template.systemPrompt).toContain('NOTE PROCESSING SPECIALIZATION');
       expect(template.systemPrompt).toContain('ideas to develop');
       expect(template.userPrompt).toContain('Process this note');
+      expect(template.systemPrompt).toContain('#project/<slug>');
     });
 
     it('should return empty object for unknown input type', () => {
