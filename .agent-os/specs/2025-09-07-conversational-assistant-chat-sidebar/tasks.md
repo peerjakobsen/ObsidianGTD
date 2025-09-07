@@ -11,12 +11,12 @@
   - [x] 1.6 Verify all tests pass
 
 - [ ] 2. Conversation service (thread + strict JSON)
-  - [ ] 2.1 Write tests for conversation service (threading, follow-ups, strict JSON on insert)
-  - [ ] 2.2 Add service to manage `thread: { role, content }[]` and start from selection
-  - [ ] 2.3 Implement `send(message)` to append and call `converse` with full thread
-  - [ ] 2.4 Implement `prepareForInsert()` that ensures JSON-only output and returns parsed actions
-  - [ ] 2.5 Handle parse errors with fallback action and clear messaging
-  - [ ] 2.6 Verify all tests pass
+  - [x] 2.1 Write tests for conversation service (threading, follow-ups, strict JSON on insert)
+  - [x] 2.2 Add service to manage `thread: { role, content }[]` and start from selection
+  - [x] 2.3 Implement `send(message)` to append and call `converse` with full thread
+  - [x] 2.4 Implement `prepareForInsert()` that ensures JSON-only output and returns parsed actions
+  - [x] 2.5 Handle parse errors with fallback action and clear messaging
+  - [x] 2.6 Verify all tests pass
 
 - [ ] 3. Sidebar chat UI (Obsidian ItemView)
   - [ ] 3.1 Write tests for view controller logic (handlers call service methods, disabled states)
