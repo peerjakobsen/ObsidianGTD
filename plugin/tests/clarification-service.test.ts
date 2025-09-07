@@ -1,27 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { GTDClarificationService, GTDActionType, ClarificationResult, createClarificationService } from '../src/clarification-service';
-import { GTDAPIClient } from '../src/api-client';
+import { GTDBedrockClient } from '../src/bedrock-client';
 import { GTDSettings } from '../src/settings';
 
 // Mock the dependencies
-jest.mock('../src/api-client');
+jest.mock('../src/bedrock-client');
 jest.mock('../src/gtd-prompts');
 
 describe('GTDClarificationService', () => {
   let service: GTDClarificationService;
-  let mockApiClient: jest.Mocked<GTDAPIClient>;
+  let mockBedrockClient: jest.Mocked<GTDBedrockClient>;
   let mockSettings: GTDSettings;
 
   beforeEach(() => {
     // Create mock settings
     mockSettings = {
-      backendUrl: 'http://localhost:8000',
-      timeout: 30000,
-      apiKey: 'test-api-key'
+      awsBearerToken: 'test-bearer-token',
+      awsRegion: 'us-east-1',
+      awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+      timeout: 30000
     };
 
-    // Create mock API client
-    mockApiClient = {
+    // Create mock Bedrock client
+    mockBedrockClient = {
       clarifyText: jest.fn(),
       testConnection: jest.fn(),
       updateConfig: jest.fn(),
@@ -34,7 +35,7 @@ describe('GTDClarificationService', () => {
     GTDPromptGenerator.generatePrompt = jest.fn();
     GTDPromptGenerator.getSuggestedContexts = jest.fn();
 
-    service = new GTDClarificationService(mockApiClient, mockSettings);
+    service = new GTDClarificationService(mockBedrockClient, mockSettings);
   });
 
   afterEach(() => {
@@ -57,8 +58,8 @@ describe('GTDClarificationService', () => {
         userPrompt: 'Clarify this text: Call John about project and send email to team'
       });
 
-      // Mock API response
-      const mockAPIResponse = {
+      // Mock Bedrock response
+      const mockBedrockResponse = {
         result: JSON.stringify([
           {
             type: 'next_action',
@@ -83,7 +84,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Call John about project and send email to team');
 
@@ -111,7 +112,7 @@ describe('GTDClarificationService', () => {
         userPrompt: 'User prompt'
       });
 
-      const mockAPIResponse = {
+      const mockBedrockResponse = {
         result: JSON.stringify([
           {
             type: 'next_action',
@@ -137,7 +138,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Mixed actions text');
 
@@ -167,7 +168,7 @@ describe('GTDClarificationService', () => {
 
       GTDPromptGenerator.getSuggestedContexts.mockReturnValue(['@computer']);
 
-      const mockAPIResponse = {
+      const mockBedrockResponse = {
         result: JSON.stringify([
           {
             type: 'next_action',
@@ -184,7 +185,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Test text');
 
@@ -210,7 +211,7 @@ describe('GTDClarificationService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Input text cannot be empty');
       expect(result.actions).toHaveLength(0);
-      expect(mockApiClient.clarifyText).not.toHaveBeenCalled();
+      expect(mockBedrockClient.clarifyText).not.toHaveBeenCalled();
     });
 
     it('should handle API errors', async () => {
@@ -227,7 +228,7 @@ describe('GTDClarificationService', () => {
       });
 
       const apiError = new Error('API request failed');
-      mockApiClient.clarifyText.mockRejectedValue(apiError);
+      mockBedrockClient.clarifyText.mockRejectedValue(apiError);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -249,7 +250,7 @@ describe('GTDClarificationService', () => {
         userPrompt: 'User prompt'
       });
 
-      const mockAPIResponse = {
+      const mockBedrockResponse = {
         result: 'Invalid JSON {broken}',
         status: 'success',
         metadata: {
@@ -259,7 +260,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -283,7 +284,7 @@ describe('GTDClarificationService', () => {
         userPrompt: 'User prompt'
       });
 
-      const mockAPIResponse = {
+      const mockBedrockResponse = {
         result: JSON.stringify({ message: 'Not an array' }),
         status: 'success',
         metadata: {
@@ -293,7 +294,7 @@ describe('GTDClarificationService', () => {
         }
       };
 
-      mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+      mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
       const result = await service.clarifyInboxText('Valid text');
 
@@ -373,42 +374,45 @@ describe('GTDClarificationService', () => {
         responseTime: 150
       };
 
-      mockApiClient.testConnection.mockResolvedValue(mockConnectionResult);
+      mockBedrockClient.testConnection.mockResolvedValue(mockConnectionResult);
 
       const result = await service.testConnection();
 
       expect(result).toEqual(mockConnectionResult);
-      expect(mockApiClient.testConnection).toHaveBeenCalled();
+      expect(mockBedrockClient.testConnection).toHaveBeenCalled();
     });
 
     it('should update settings', () => {
       const newSettings: GTDSettings = {
-        backendUrl: 'http://new-url:8000',
-        timeout: 60000,
-        apiKey: 'new-api-key'
+        awsBearerToken: 'new-bearer-token',
+        awsRegion: 'us-west-2',
+        awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+        timeout: 60000
       };
 
       service.updateSettings(newSettings);
 
-      expect(mockApiClient.updateConfig).toHaveBeenCalledWith({
-        backendUrl: 'http://new-url:8000',
-        timeout: 60000,
-        apiKey: 'new-api-key'
+      expect(mockBedrockClient.updateConfig).toHaveBeenCalledWith({
+        bearerToken: 'new-bearer-token',
+        region: 'us-west-2',
+        modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+        timeout: 60000
       });
     });
 
     it('should provide service info', () => {
-      mockApiClient.getConfig.mockReturnValue({
-        backendUrl: 'http://localhost:8000',
+      mockBedrockClient.getConfig.mockReturnValue({
+        region: 'us-east-1',
+        modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
         timeout: 30000,
-        hasApiKey: true
+        hasBearerToken: true
       });
 
       const info = service.getServiceInfo();
 
       expect(info.hasValidConfig).toBe(true);
-      expect(info.backendUrl).toBe('http://localhost:8000');
-      expect(info.hasApiKey).toBe(true);
+      expect(info.region).toBe('us-east-1');
+      expect(info.hasBearerToken).toBe(true);
       expect(info.timeout).toBe(30000);
     });
   });
@@ -427,7 +431,7 @@ describe('GTDClarificationService', () => {
         userPrompt: 'User prompt'
       });
 
-      mockApiClient.clarifyText.mockResolvedValue({
+      mockBedrockClient.clarifyText.mockResolvedValue({
         result: '[]',
         status: 'success',
         metadata: {
@@ -445,7 +449,7 @@ describe('GTDClarificationService', () => {
       });
 
       expect(GTDPromptGenerator.generatePrompt).toHaveBeenCalledWith('Test text', 'email');
-      expect(mockApiClient.clarifyText).toHaveBeenCalledWith(
+      expect(mockBedrockClient.clarifyText).toHaveBeenCalledWith(
         expect.any(String)
       );
     });
@@ -454,19 +458,20 @@ describe('GTDClarificationService', () => {
 
 describe('GTDClarificationService - Metadata Extraction', () => {
   let service: GTDClarificationService;
-  let mockApiClient: jest.Mocked<GTDAPIClient>;
+  let mockBedrockClient: jest.Mocked<GTDBedrockClient>;
   let mockSettings: GTDSettings;
 
   beforeEach(() => {
     // Create mock settings
     mockSettings = {
-      backendUrl: 'http://localhost:8000',
-      timeout: 30000,
-      apiKey: 'test-api-key'
+      awsBearerToken: 'test-bearer-token',
+      awsRegion: 'us-east-1',
+      awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+      timeout: 30000
     };
 
-    // Create mock API client
-    mockApiClient = {
+    // Create mock Bedrock client
+    mockBedrockClient = {
       clarifyText: jest.fn(),
       testConnection: jest.fn(),
       updateConfig: jest.fn(),
@@ -479,7 +484,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
     GTDPromptGenerator.generatePrompt = jest.fn();
     GTDPromptGenerator.getSuggestedContexts = jest.fn();
 
-    service = new GTDClarificationService(mockApiClient, mockSettings);
+    service = new GTDClarificationService(mockBedrockClient, mockSettings);
   });
 
   afterEach(() => {
@@ -501,7 +506,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -554,7 +559,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test inbox text');
 
@@ -585,7 +590,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
 
         GTDPromptGenerator.getSuggestedContexts.mockReturnValue(['@computer']);
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -608,7 +613,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -635,7 +640,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -652,7 +657,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -675,7 +680,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -707,7 +712,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -733,7 +738,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -765,7 +770,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -791,7 +796,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -809,7 +814,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -830,7 +835,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -848,7 +853,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Test text');
 
@@ -871,7 +876,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           userPrompt: 'User prompt'
         });
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -898,7 +903,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Complex task with both metadata');
 
@@ -931,7 +936,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
 
         GTDPromptGenerator.getSuggestedContexts.mockReturnValue(['@computer']);
 
-        const mockAPIResponse = {
+        const mockBedrockResponse = {
           result: JSON.stringify([
             {
               type: 'next_action',
@@ -962,7 +967,7 @@ describe('GTDClarificationService - Metadata Extraction', () => {
           }
         };
 
-        mockApiClient.clarifyText.mockResolvedValue(mockAPIResponse);
+        mockBedrockClient.clarifyText.mockResolvedValue(mockBedrockResponse);
 
         const result = await service.clarifyInboxText('Partial metadata task');
 
@@ -988,9 +993,10 @@ describe('GTDClarificationService - Metadata Extraction', () => {
 describe('Factory Function', () => {
   it('should create clarification service with settings', () => {
     const settings: GTDSettings = {
-      backendUrl: 'http://localhost:8000',
       timeout: 30000,
-      apiKey: 'test-key'
+      awsBearerToken: 'test-bearer-token',
+      awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+      awsRegion: 'us-east-1'
     };
 
     const service = createClarificationService(settings);

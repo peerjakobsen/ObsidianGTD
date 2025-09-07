@@ -1,8 +1,8 @@
-import { Plugin, PluginSettingTab, Setting, Notice, MarkdownView } from 'obsidian';
+import { Plugin, Notice, MarkdownView } from 'obsidian';
 import { GTDSettings, DEFAULT_SETTINGS } from './settings';
 import { GTDSettingTab } from './settings-tab';
 import { GTDClarificationService, createClarificationService } from './clarification-service';
-import { logger, LogLevel, DebugUtils } from './logger';
+import { logger } from './logger';
 import { createBedrockClient } from './bedrock-client';
 
 export default class ObsidianGTDPlugin extends Plugin {

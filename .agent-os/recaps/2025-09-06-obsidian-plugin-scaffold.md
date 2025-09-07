@@ -8,8 +8,8 @@ Successfully implemented the foundational Obsidian plugin structure with compreh
 
 Key accomplishments include:
 - Complete plugin foundation with manifest, main class, and lifecycle management
-- Settings panel with backend URL configuration, timeout settings, and API key management
-- Connection testing functionality to verify backend service availability
+- Settings panel with AWS bearer token, model ID, region, and timeout
+- AWS connection testing functionality (direct endpoint reachability)
 - Text selection command registration with proper editor integration
 - Comprehensive test suite covering plugin initialization and manifest validation
 - Development environment with hot reload, linting, and build automation

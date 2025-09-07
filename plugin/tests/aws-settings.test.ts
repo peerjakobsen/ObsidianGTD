@@ -26,6 +26,13 @@ describe('AWS Settings Panel', () => {
   let settingsTab: GTDSettingTab;
   let mockContainerEl: any;
   let settingMockInstances: any[];
+  
+  // Helper to find a mocked Setting instance by its setName call
+  const findSettingByName = (name: string) =>
+    settingMockInstances.find((inst) =>
+      Array.isArray(inst.setName?.mock?.calls) &&
+      inst.setName.mock.calls.some((call: any[]) => call[0] === name)
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,9 +41,7 @@ describe('AWS Settings Panel', () => {
     
     mockPlugin = {
       settings: {
-        backendUrl: 'http://localhost:8000',
         timeout: 30000,
-        apiKey: '',
         awsBearerToken: '',
         awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
         awsRegion: 'us-east-1'
@@ -96,9 +101,8 @@ describe('AWS Settings Panel', () => {
   describe('AWS Bearer Token Settings', () => {
     it('should create AWS bearer token input field with correct properties', () => {
       settingsTab.display();
-
-      // Find the AWS Bearer Token setting (it should be the 4th Setting created after Backend URL, timeout, API Key)
-      const bearerTokenSetting = settingMockInstances[3];
+      // Find the AWS Bearer Token setting by name
+      const bearerTokenSetting = findSettingByName('AWS Bearer Token');
       
       expect(bearerTokenSetting.setName).toHaveBeenCalledWith('AWS Bearer Token');
       expect(bearerTokenSetting.setDesc).toHaveBeenCalledWith('Bearer token for AWS Bedrock authentication');
@@ -122,8 +126,7 @@ describe('AWS Settings Panel', () => {
 
     it('should handle bearer token input change and save settings', async () => {
       settingsTab.display();
-
-      const bearerTokenSetting = settingMockInstances[3];
+      const bearerTokenSetting = findSettingByName('AWS Bearer Token');
       const textCallback = bearerTokenSetting.addText.mock.calls[0][0];
       const mockTextInput = {
         inputEl: { type: 'text' },
@@ -143,8 +146,7 @@ describe('AWS Settings Panel', () => {
 
     it('should show validation message for short bearer token', async () => {
       settingsTab.display();
-
-      const bearerTokenSetting = settingMockInstances[3];
+      const bearerTokenSetting = findSettingByName('AWS Bearer Token');
       const textCallback = bearerTokenSetting.addText.mock.calls[0][0];
       const mockTextInput = {
         inputEl: { type: 'text' },
@@ -164,9 +166,8 @@ describe('AWS Settings Panel', () => {
   describe('AWS Bedrock ModelID Settings', () => {
     it('should create AWS Bedrock ModelID input field with correct properties', () => {
       settingsTab.display();
-
-      // Find the AWS Bedrock Model ID setting (5th Setting created)
-      const modelIdSetting = settingMockInstances[4];
+      // Find the AWS Bedrock Model ID setting by name
+      const modelIdSetting = findSettingByName('AWS Bedrock Model ID');
       
       expect(modelIdSetting.setName).toHaveBeenCalledWith('AWS Bedrock Model ID');
       expect(modelIdSetting.setDesc).toHaveBeenCalledWith('Bedrock model identifier (e.g., us.anthropic.claude-sonnet-4-20250514-v1:0)');
@@ -188,8 +189,7 @@ describe('AWS Settings Panel', () => {
 
     it('should handle model ID input change and save settings', async () => {
       settingsTab.display();
-
-      const modelIdSetting = settingMockInstances[4];
+      const modelIdSetting = findSettingByName('AWS Bedrock Model ID');
       const textCallback = modelIdSetting.addText.mock.calls[0][0];
       const mockTextInput = {
         inputEl: { type: 'text' },
@@ -208,8 +208,7 @@ describe('AWS Settings Panel', () => {
 
     it('should show validation message for invalid model ID format', async () => {
       settingsTab.display();
-
-      const modelIdSetting = settingMockInstances[4];
+      const modelIdSetting = findSettingByName('AWS Bedrock Model ID');
       const textCallback = modelIdSetting.addText.mock.calls[0][0];
       const mockTextInput = {
         inputEl: { type: 'text' },
@@ -229,9 +228,8 @@ describe('AWS Settings Panel', () => {
   describe('AWS Region Selector Settings', () => {
     it('should create AWS region dropdown with correct properties', () => {
       settingsTab.display();
-
-      // Find the AWS Region setting (6th Setting created)
-      const regionSetting = settingMockInstances[5];
+      // Find the AWS Region setting by name
+      const regionSetting = findSettingByName('AWS Region');
       
       expect(regionSetting.setName).toHaveBeenCalledWith('AWS Region');
       expect(regionSetting.setDesc).toHaveBeenCalledWith('AWS region for Bedrock service');
@@ -258,8 +256,7 @@ describe('AWS Settings Panel', () => {
 
     it('should handle region selection change and save settings', async () => {
       settingsTab.display();
-
-      const regionSetting = settingMockInstances[5];
+      const regionSetting = findSettingByName('AWS Region');
       const dropdownCallback = regionSetting.addDropdown.mock.calls[0][0];
       const mockDropdown = {
         addOption: jest.fn().mockReturnThis(),
@@ -277,8 +274,7 @@ describe('AWS Settings Panel', () => {
 
     it('should include all major AWS regions with Bedrock support', () => {
       settingsTab.display();
-
-      const regionSetting = settingMockInstances[5];
+      const regionSetting = findSettingByName('AWS Region');
       const dropdownCallback = regionSetting.addDropdown.mock.calls[0][0];
       const mockDropdown = {
         addOption: jest.fn().mockReturnThis(),
@@ -305,9 +301,8 @@ describe('AWS Settings Panel', () => {
   describe('AWS Connection Testing', () => {
     it('should create AWS connection test button with correct properties', () => {
       settingsTab.display();
-
-      // Find the Test AWS connection setting (8th Setting created)
-      const connectionTestSetting = settingMockInstances[7];
+      // Find the Test AWS connection setting by name
+      const connectionTestSetting = findSettingByName('Test AWS connection');
       
       expect(connectionTestSetting.setName).toHaveBeenCalledWith('Test AWS connection');
       expect(connectionTestSetting.setDesc).toHaveBeenCalledWith('Test connection to AWS Bedrock service');
@@ -340,8 +335,7 @@ describe('AWS Settings Panel', () => {
       mockPlugin.settings.awsRegion = 'us-east-1';
 
       settingsTab.display();
-
-      const connectionTestSetting = settingMockInstances[7];
+      const connectionTestSetting = findSettingByName('Test AWS connection');
       const buttonCallback = connectionTestSetting.addButton.mock.calls[0][0];
       const mockButton = {
         setButtonText: jest.fn().mockReturnThis(),
@@ -364,8 +358,7 @@ describe('AWS Settings Panel', () => {
       mockPlugin.settings.awsRegion = 'us-east-1';
 
       settingsTab.display();
-
-      const connectionTestSetting = settingMockInstances[7];
+      const connectionTestSetting = findSettingByName('Test AWS connection');
       const buttonCallback = connectionTestSetting.addButton.mock.calls[0][0];
       const mockButton = {
         setButtonText: jest.fn().mockReturnThis(),
@@ -393,8 +386,7 @@ describe('AWS Settings Panel', () => {
       mockPlugin.settings.awsRegion = 'us-east-1';
 
       settingsTab.display();
-
-      const connectionTestSetting = settingMockInstances[7];
+      const connectionTestSetting = findSettingByName('Test AWS connection');
       const buttonCallback = connectionTestSetting.addButton.mock.calls[0][0];
       const mockButton = {
         setButtonText: jest.fn().mockReturnThis(),
@@ -470,9 +462,7 @@ describe('AWS Settings Panel', () => {
   describe('Settings Integration', () => {
     it('should load AWS settings from stored data', () => {
       const storedSettings = {
-        backendUrl: 'http://localhost:8000',
         timeout: 30000,
-        apiKey: '',
         awsBearerToken: 'stored-bearer-token',
         awsBedrockModelId: 'us.anthropic.claude-opus-3-20240229-v1:0',
         awsRegion: 'eu-west-1'
@@ -487,9 +477,7 @@ describe('AWS Settings Panel', () => {
 
     it('should use default AWS settings when no stored data exists', () => {
       const defaultSettings = {
-        backendUrl: 'http://localhost:8000',
         timeout: 30000,
-        apiKey: '',
         awsBearerToken: '',
         awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
         awsRegion: 'us-east-1'
@@ -504,9 +492,7 @@ describe('AWS Settings Panel', () => {
 
     it('should persist AWS settings when changed', async () => {
       mockPlugin.settings = {
-        backendUrl: 'http://localhost:8000',
         timeout: 30000,
-        apiKey: '',
         awsBearerToken: '',
         awsBedrockModelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
         awsRegion: 'us-east-1'

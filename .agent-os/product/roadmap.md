@@ -28,12 +28,12 @@
 
 ### Features
 
-- [ ] AWS SDK integration with @aws-sdk/client-bedrock-runtime `M`
-- [ ] Direct Bedrock client service using AWS SDK HTTP handler `L`
-- [ ] AWS bearer token configuration in plugin settings `S`
-- [ ] Port server bedrock_client.py logic to TypeScript `M`
-- [ ] Connection testing for direct AWS access `S`
-- [ ] Remove server dependency from documentation `S`
+- [x] AWS SDK integration with @aws-sdk/client-bedrock-runtime `M`
+- [x] Direct Bedrock client service using AWS SDK HTTP handler `L`
+- [x] AWS bearer token configuration in plugin settings `S`
+- [x] Port server bedrock_client.py logic to TypeScript `M`
+- [x] Connection testing for direct AWS access `S`
+- [x] Remove server dependency from documentation `S`
 
 ### Dependencies
 

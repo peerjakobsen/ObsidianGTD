@@ -48,26 +48,28 @@ describe('BedrockClient', () => {
     it('should create BedrockRuntimeClient with default region', () => {
       const client = createBedrockClient('test-bearer-token');
       
-      expect(BedrockRuntimeClient).toHaveBeenCalledWith({
-        region: 'us-east-1'
-      });
+      expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
+        region: 'us-east-1',
+        apiKey: 'test-bearer-token',
+      }));
       expect(client).toBe(mockClient);
     });
 
     it('should create BedrockRuntimeClient with custom region', () => {
       const client = createBedrockClient('test-bearer-token', 'us-west-2');
       
-      expect(BedrockRuntimeClient).toHaveBeenCalledWith({
-        region: 'us-west-2'
-      });
+      expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
+        region: 'us-west-2',
+        apiKey: 'test-bearer-token',
+      }));
       expect(client).toBe(mockClient);
     });
 
-    it('should set AWS_BEARER_TOKEN_BEDROCK environment variable', () => {
+    it('should set BEDROCK_API_KEY environment variable', () => {
       const bearerToken = 'test-bearer-token-123';
       createBedrockClient(bearerToken);
       
-      expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe(bearerToken);
+      expect(process.env.BEDROCK_API_KEY).toBe(bearerToken);
     });
 
     it('should handle missing process.env gracefully', () => {
@@ -123,13 +125,13 @@ describe('BedrockClient', () => {
       
       tokens.forEach(token => {
         expect(() => createBedrockClient(token)).not.toThrow();
-        expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe(token);
+        expect(process.env.BEDROCK_API_KEY).toBe(token);
       });
     });
 
     it('should handle empty bearer token', () => {
       expect(() => createBedrockClient('')).not.toThrow();
-      expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe('');
+      expect(process.env.BEDROCK_API_KEY).toBe('');
     });
   });
 
@@ -146,9 +148,10 @@ describe('BedrockClient', () => {
       it(`should accept valid region: ${region}`, () => {
         const client = createBedrockClient('test-token', region);
         
-        expect(BedrockRuntimeClient).toHaveBeenCalledWith({
-          region: region
-        });
+        expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
+          region,
+          apiKey: 'test-token',
+        }));
         expect(client).toBe(mockClient);
       });
     });
@@ -157,9 +160,10 @@ describe('BedrockClient', () => {
       const customRegion = 'eu-central-1';
       const client = createBedrockClient('test-token', customRegion);
       
-      expect(BedrockRuntimeClient).toHaveBeenCalledWith({
-        region: customRegion
-      });
+      expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
+        region: customRegion,
+        apiKey: 'test-token',
+      }));
     });
   });
 
@@ -340,9 +344,10 @@ describe('GTDBedrockClient', () => {
       );
       
       expect(client).toBeInstanceOf(GTDBedrockClient);
-      expect(BedrockRuntimeClient).toHaveBeenCalledWith({
-        region: 'us-east-1'
-      });
+      expect(BedrockRuntimeClient).toHaveBeenCalledWith(expect.objectContaining({
+        region: 'us-east-1',
+        apiKey: 'test-bearer-token',
+      }));
     });
 
     it('should use default values for optional parameters', () => {
@@ -358,7 +363,7 @@ describe('GTDBedrockClient', () => {
       const bearerToken = 'test-bearer-token-123';
       createGTDBedrockClient(bearerToken);
       
-      expect(process.env.AWS_BEARER_TOKEN_BEDROCK).toBe(bearerToken);
+      expect(process.env.BEDROCK_API_KEY).toBe(bearerToken);
     });
   });
 

@@ -14,16 +14,6 @@ export class GTDSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    new Setting(containerEl)
-      .setName('Backend URL')
-      .setDesc('URL of the FastAPI backend service')
-      .addText(text => text
-        .setPlaceholder('http://localhost:8000')
-        .setValue(this.plugin.settings.backendUrl)
-        .onChange(async (value) => {
-          this.plugin.settings.backendUrl = value;
-          await this.plugin.saveSettings();
-        }));
 
     new Setting(containerEl)
       .setName('Request timeout')
@@ -36,19 +26,6 @@ export class GTDSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }));
 
-    new Setting(containerEl)
-      .setName('API Key')
-      .setDesc('Optional API key for authentication')
-      .addText(text => {
-        text.inputEl.type = 'password';
-        return text
-          .setPlaceholder('Enter API key')
-          .setValue(this.plugin.settings.apiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.apiKey = value;
-            await this.plugin.saveSettings();
-          });
-      });
 
     new Setting(containerEl)
       .setName('AWS Bearer Token')
@@ -102,16 +79,6 @@ export class GTDSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Test connection')
-      .setDesc('Test connection to the backend service')
-      .addButton(button => button
-        .setButtonText('Test')
-        .setCta()
-        .onClick(async () => {
-          await this.testConnection();
-        }));
-
-    new Setting(containerEl)
       .setName('Test AWS connection')
       .setDesc('Test connection to AWS Bedrock service')
       .addButton(button => button
@@ -122,30 +89,6 @@ export class GTDSettingTab extends PluginSettingTab {
         }));
   }
 
-  private async testConnection(): Promise<void> {
-    try {
-      const response = await fetch(`${this.plugin.settings.backendUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.plugin.settings.apiKey && { 'Authorization': `Bearer ${this.plugin.settings.apiKey}` })
-        },
-        signal: (() => {
-          const controller = new AbortController();
-          setTimeout(() => controller.abort(), this.plugin.settings.timeout);
-          return controller.signal;
-        })()
-      });
-
-      if (response.ok) {
-        new Notice('✅ Connection successful!');
-      } else {
-        new Notice(`❌ Connection failed: ${response.status} ${response.statusText}`);
-      }
-    } catch (error) {
-      new Notice(`❌ Connection failed: ${error.message}`);
-    }
-  }
 
   private validateAwsSettings(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
@@ -184,10 +127,6 @@ export class GTDSettingTab extends PluginSettingTab {
       errors.push('Timeout must be at least 1000ms');
     }
 
-    // Validate backend URL format (for legacy support)
-    if (this.plugin.settings.backendUrl.trim() && !this.plugin.settings.backendUrl.startsWith('http')) {
-      errors.push('Backend URL must start with http:// or https://');
-    }
 
     // Validate AWS settings if they're being used
     const awsValidation = this.validateAwsSettings();
@@ -207,26 +146,42 @@ export class GTDSettingTab extends PluginSettingTab {
         return;
       }
 
-      // Show testing notice
-      new Notice('🔄 Testing AWS Bedrock endpoint reachability...');
+      // Prefer a real credential check via the service, fallback to endpoint HEAD check
+      if ((this.plugin as any)?.clarificationService?.testConnection) {
+        new Notice('🔄 Testing AWS Bedrock credentials...');
+        try {
+          const result = await (this.plugin as any).clarificationService.testConnection();
+          if (result.success) {
+            new Notice(`✅ AWS Bedrock connection successful${result.responseTime ? ` (${result.responseTime}ms)` : ''}`);
+          } else {
+            new Notice(`❌ AWS connection failed: ${result.message}`);
+          }
+          return;
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            new Notice('❌ AWS connection test timed out');
+          } else if (error?.message?.includes('CORS') || error?.message?.includes('TypeError: Failed to fetch')) {
+            new Notice('⚠️ Could not complete credential check due to CORS; verify settings and try clarify');
+          } else {
+            new Notice(`❌ AWS connection failed: ${error?.message || error}`);
+          }
+          return;
+        }
+      }
 
-      // For now, check AWS endpoint reachability without sending credentials
-      // TODO: Replace with actual AWS SDK Bedrock client test when SDK is integrated
-      // This should use a minimal Converse command or proper AWS SDK validation
+      // Fallback: endpoint reachability without credentials (kept for test environment)
+      new Notice('🔄 Testing AWS Bedrock endpoint reachability...');
       const testUrl = `https://bedrock-runtime.${this.plugin.settings.awsRegion}.amazonaws.com`;
-      
       try {
         const response = await fetch(testUrl, {
           method: 'HEAD',
-          // Don't send Authorization header for simple reachability test
           signal: (() => {
             const controller = new AbortController();
-            setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            setTimeout(() => controller.abort(), 10000);
             return controller.signal;
           })()
         });
 
-        // Update messages to reflect this is just endpoint reachability testing
         if (response.status === 403) {
           new Notice('✅ AWS Bedrock endpoint is reachable (credential validation will happen during actual usage)');
         } else if (response.status < 500) {
@@ -238,7 +193,6 @@ export class GTDSettingTab extends PluginSettingTab {
         if (error.name === 'AbortError') {
           new Notice('❌ AWS connection test timed out');
         } else if (error.message.includes('CORS') || error.message.includes('TypeError: Failed to fetch')) {
-          // CORS errors in browser are expected when testing directly - this actually indicates the endpoint exists
           new Notice('⚠️ AWS endpoint validation complete (CORS expected in browser)');
         } else {
           new Notice(`❌ AWS connection failed: ${error.message}`);
