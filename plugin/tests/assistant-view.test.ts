@@ -109,4 +109,26 @@ describe('GTDAssistantView - controller logic', () => {
     await view.onOpen();
     expect(mockConversation.send).toHaveBeenCalledWith('Process this');
   });
+
+  it('renders a tasks preview for assistant JSON and toggles raw view', async () => {
+    // Thread with an assistant JSON response
+    mockConversation.getThread = jest.fn().mockReturnValue([
+      { role: 'user', content: 'Please clarify' },
+      { role: 'assistant', content: '[{"action":"Do thing","tags":[]}]' },
+    ]);
+
+    const view = new GTDAssistantView(leaf, mockPlugin, { conversationService: mockConversation });
+    await view.onOpen();
+
+    // Preview should show a task line
+    const previewText = document.body.textContent || '';
+    expect(previewText).toContain('Do thing');
+
+    // Toggle to raw JSON
+    const toggle = document.body.querySelector('.gtd-toggle-raw') as HTMLAnchorElement;
+    expect(toggle).toBeTruthy();
+    toggle.click();
+    const rawShown = (document.body.querySelector('.gtd-msg-raw') as HTMLElement).style.display !== 'none';
+    expect(rawShown).toBe(true);
+  });
 });

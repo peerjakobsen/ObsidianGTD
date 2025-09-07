@@ -203,12 +203,107 @@ export class GTDAssistantView extends ItemView {
       const role = document.createElement('div');
       role.className = 'gtd-msg-role';
       role.textContent = m.role === 'user' ? 'You' : 'Assistant';
-      const content = document.createElement('div');
-      content.className = 'gtd-msg-content';
-      content.textContent = m.content;
       row.appendChild(role);
-      row.appendChild(content);
+
+      if (m.role === 'assistant') {
+        this.renderAssistantContent(row, m.content);
+      } else {
+        const content = document.createElement('div');
+        content.className = 'gtd-msg-content';
+        content.textContent = m.content;
+        row.appendChild(content);
+      }
       this.messagesEl.appendChild(row);
+    }
+  }
+
+  // Try to render assistant output as a tasks preview when it contains a JSON array
+  private renderAssistantContent(container: HTMLElement, text: string): void {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'gtd-msg-content';
+
+    const parsed = this.tryParseActions(text);
+    if (!parsed) {
+      // Fallback: show raw
+      wrapper.textContent = text;
+      container.appendChild(wrapper);
+      return;
+    }
+
+    // Build preview using convertToTasksFormat
+    const preview = document.createElement('div');
+    preview.className = 'gtd-msg-preview';
+    const result = { success: true, actions: parsed, original_text: text, processing_time_ms: 0 } as any;
+    const lines = this.plugin.clarificationService.convertToTasksFormat(result);
+    for (const line of lines) {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'gtd-task-line';
+      lineEl.textContent = line;
+      preview.appendChild(lineEl);
+    }
+
+    // Raw JSON view
+    const raw = document.createElement('pre');
+    raw.className = 'gtd-msg-raw';
+    raw.textContent = text;
+    raw.style.display = 'none';
+
+    // Toggle control
+    const toggle = document.createElement('a');
+    toggle.href = '#';
+    toggle.textContent = 'View raw JSON';
+    toggle.className = 'gtd-toggle-raw';
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const showingRaw = raw.style.display !== 'none';
+      if (showingRaw) {
+        raw.style.display = 'none';
+        preview.style.display = '';
+        toggle.textContent = 'View raw JSON';
+      } else {
+        raw.style.display = '';
+        preview.style.display = 'none';
+        toggle.textContent = 'View preview';
+      }
+    });
+
+    wrapper.appendChild(preview);
+    wrapper.appendChild(raw);
+    wrapper.appendChild(toggle);
+    container.appendChild(wrapper);
+  }
+
+  // Extract actions array from assistant text; tolerant of fenced code blocks
+  private tryParseActions(text: string): Array<any> | null {
+    try {
+      let jsonContent = text;
+      const codeBlockMatch = jsonContent.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/i);
+      if (codeBlockMatch) {
+        jsonContent = codeBlockMatch[1];
+      }
+      // If text contains prose + JSON, attempt to isolate first array
+      if (!codeBlockMatch && !/^[\s\n]*\[/.test(jsonContent.trim())) {
+        const firstArray = jsonContent.match(/\[[\s\S]*\]/);
+        if (firstArray) jsonContent = firstArray[0];
+      }
+      const parsed = JSON.parse(jsonContent);
+      if (!Array.isArray(parsed)) return null;
+      // Normalize minimal fields
+      return parsed.map((item: any) => ({
+        type: item.type || 'next_action',
+        action: String(item.action || '').trim(),
+        context: item.context || '',
+        project: item.project || '',
+        due_date: item.due_date || '',
+        priority: item.priority || 'normal',
+        scheduled_date: item.scheduled_date || '',
+        start_date: item.start_date || '',
+        recurrence: item.recurrence || '',
+        time_estimate: item.time_estimate || '',
+        tags: Array.isArray(item.tags) ? item.tags : [],
+      })).filter((a: any) => a.action);
+    } catch {
+      return null;
     }
   }
 
