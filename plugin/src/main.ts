@@ -3,6 +3,7 @@ import { GTDSettings, DEFAULT_SETTINGS } from './settings';
 import { GTDSettingTab } from './settings-tab';
 import { GTDClarificationService, createClarificationService } from './clarification-service';
 import { logger, LogLevel, DebugUtils } from './logger';
+import { createBedrockClient } from './bedrock-client';
 
 export default class ObsidianGTDPlugin extends Plugin {
   settings: GTDSettings;
@@ -61,6 +62,14 @@ export default class ObsidianGTDPlugin extends Plugin {
     this.addSettingTab(new GTDSettingTab(this.app, this));
 
     logger.info('Plugin', 'GTD Assistant plugin loaded successfully');
+    
+    // Force AWS SDK bundling - create a test client but don't use it
+    try {
+      const testClient = createBedrockClient('test-token');
+      logger.debug('Plugin', 'AWS SDK loaded successfully', { hasClient: !!testClient });
+    } catch (e) {
+      logger.debug('Plugin', 'AWS SDK loaded but test failed (expected)', { error: e.message });
+    }
   }
 
   onunload() {

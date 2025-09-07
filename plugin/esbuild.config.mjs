@@ -17,6 +17,12 @@ const context = await esbuild.context({
 	},
 	entryPoints: ['src/main.ts'],
 	bundle: true,
+	minify: prod,
+	platform: 'browser',
+	drop: prod ? ['debugger'] : [],
+	define: {
+		'process.env.NODE_ENV': prod ? '"production"' : '"development"'
+	},
 	external: [
 		'obsidian',
 		'electron',
