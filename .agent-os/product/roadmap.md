@@ -86,6 +86,31 @@
 - Safer insertion by separating exploration from commit
 - Reduced prompt fragility; clearer control over output format
 
+## Phase 3.5: Project Note Template
+
+**Goal:** Generate a GTD-aligned project note from a raw description with consistent YAML and Tasks queries
+**Success Criteria:** Command creates/updates a structured project note; re-runs are idempotent; tasks queries surface actions across the vault via project tag
+
+### Features
+
+- [ ] Command: "GTD: Structure Project Note" `M`
+- [ ] YAML frontmatter: `status`, `project_tag` with computed slug `S`
+- [ ] Structured section (Objective, DoD, Scope, Milestones, Risks, Stakeholders, Links, Notes) generated via Bedrock `M`
+- [ ] Managed markers for idempotent updates (structured/raw) `S`
+- [ ] Standard Tasks queries for Next Actions and Waiting For by project tag `S`
+- [ ] Settings: tag prefix, default status, review interval; offline skeleton fallback `S`
+
+### Dependencies
+
+- Phase 2 completion (direct Bedrock calls)
+- Obsidian Tasks plugin installed
+
+### Benefits
+
+- Uniform project notes aligned to GTD best practices
+- Immediate visibility of related tasks across the vault
+- Foundation for Review Projects and project health checks
+
 ## Phase 4: Intelligent Processing
 
 **Goal:** Add advanced metadata detection and project association
