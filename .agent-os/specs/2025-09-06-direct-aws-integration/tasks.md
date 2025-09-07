@@ -24,10 +24,11 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [ ] 3. Update Settings Panel for AWS Configuration
   - [ ] 3.1 Write tests for new AWS settings fields and validation
   - [ ] 3.2 Add AWS bearer token input field to settings panel
-  - [ ] 3.3 Add AWS region selector dropdown
-  - [ ] 3.4 Implement connection testing for direct AWS access
-  - [ ] 3.5 Add settings validation and error messaging
-  - [ ] 3.6 Verify all tests pass and settings work correctly
+  - [ ] 3.4 Add AWS Bedrock ModelID input field to settings panel
+  - [ ] 3.4 Add AWS region selector dropdown
+  - [ ] 3.5 Implement connection testing for direct AWS access
+  - [ ] 3.6 Add settings validation and error messaging
+  - [ ] 3.7 Verify all tests pass and settings work correctly
 
 - [ ] 4. Replace API Client Architecture
   - [ ] 4.1 Write tests for updated clarification service integration
