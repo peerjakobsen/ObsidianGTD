@@ -6,6 +6,7 @@
 import { GTDPromptGenerator } from './gtd-prompts';
 import { GTDAPIClient, APIResponse, APIClientError } from './api-client';
 import { GTDSettings } from './settings';
+import { GTDLogger } from './logger';
 
 export interface GTDActionType {
   type: 'next_action' | 'waiting_for' | 'someday_maybe';
@@ -48,6 +49,7 @@ export interface ClarificationOptions {
 export class GTDClarificationService {
   private apiClient: GTDAPIClient;
   private settings: GTDSettings;
+  private logger = GTDLogger.getInstance();
 
   constructor(apiClient: GTDAPIClient, settings: GTDSettings) {
     this.apiClient = apiClient;
@@ -233,15 +235,15 @@ export class GTDClarificationService {
     let startDate = rawAction.start_date || '';
     
     if (dueDate && !this.isValidDateFormat(dueDate)) {
-      console.warn(`Invalid due date format for action ${index + 1}: ${dueDate}`);
+      this.logger.warn('ClarificationService', `Invalid due date format for action ${index + 1}: ${dueDate}`);
       dueDate = '';
     }
     if (scheduledDate && !this.isValidDateFormat(scheduledDate)) {
-      console.warn(`Invalid scheduled date format for action ${index + 1}: ${scheduledDate}`);
+      this.logger.warn('ClarificationService', `Invalid scheduled date format for action ${index + 1}: ${scheduledDate}`);
       scheduledDate = '';
     }
     if (startDate && !this.isValidDateFormat(startDate)) {
-      console.warn(`Invalid start date format for action ${index + 1}: ${startDate}`);
+      this.logger.warn('ClarificationService', `Invalid start date format for action ${index + 1}: ${startDate}`);
       startDate = '';
     }
 
@@ -249,13 +251,13 @@ export class GTDClarificationService {
     const validPriorities = ['highest', 'high', 'medium', 'normal', 'low', 'lowest'];
     const priority = rawAction.priority || 'normal';
     if (!validPriorities.includes(priority)) {
-      console.warn(`Invalid priority for action ${index + 1}: ${priority}`);
+      this.logger.warn('ClarificationService', `Invalid priority for action ${index + 1}: ${priority}`);
     }
 
     // Enhanced time estimate parsing and validation
     let timeEstimate = this.parseAndValidateTimeEstimate(rawAction.time_estimate || '');
     if (rawAction.time_estimate && !timeEstimate) {
-      console.warn(`Invalid time estimate format for action ${index + 1}: ${rawAction.time_estimate}`);
+      this.logger.warn('ClarificationService', `Invalid time estimate format for action ${index + 1}: ${rawAction.time_estimate}`);
     }
 
     return {
@@ -319,7 +321,20 @@ export class GTDClarificationService {
       '@anywhere'
     ];
 
-    // Return normalized context (even if not in predefined list, for flexibility)
+    // Validate against standard contexts and add telemetry
+    const isStandardContext = validContexts.includes(normalizedContext.toLowerCase());
+
+    if (!isStandardContext && normalizedContext) {
+      // Log telemetry for non-standard context usage
+      this.logger.info('ClarificationService', 
+        `Non-standard GTD context used: ${normalizedContext}`, {
+        context: normalizedContext,
+        telemetry: true,
+        type: 'custom_context'
+      });
+    }
+
+    // Return normalized context (maintaining flexibility)
     return normalizedContext;
   }
 
