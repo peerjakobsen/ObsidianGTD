@@ -6,6 +6,8 @@
 [![AWS Bedrock: Direct](https://img.shields.io/badge/AWS%20Bedrock-Direct-orange?logo=amazonaws&logoColor=white)](#installation)
 [![Release](https://img.shields.io/github/v/release/peerjakobsen/ObsidianGTD?display_name=tag&sort=semver)](https://github.com/peerjakobsen/ObsidianGTD/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/peerjakobsen/ObsidianGTD#license)
+[![Install via BRAT](https://img.shields.io/badge/Install-via%20BRAT-8A2BE2)](#installation)
+[![Downloads](https://img.shields.io/github/downloads/peerjakobsen/ObsidianGTD/total.svg)](https://github.com/peerjakobsen/ObsidianGTD/releases)
 
 GTD Assistant for Obsidian. Converts selected text into Tasks‑compatible actions using AWS Bedrock.
 
