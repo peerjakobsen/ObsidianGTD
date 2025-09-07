@@ -1,5 +1,7 @@
 # Obsidian GTD
 
+Obsidian 0.15+ • TypeScript/Node 16+ • AWS Bedrock (Direct) • License: MIT • Latest: v1.0.0
+
 AI‑powered Getting Things Done (GTD) for Obsidian. Converts inbox text into Tasks‑compatible actions using direct AWS Bedrock integration (no local server required).
 
 ## Project Structure

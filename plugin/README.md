@@ -1,5 +1,7 @@
 # Obsidian GTD Plugin
 
+Obsidian 0.15+ • TypeScript/Node 16+ • AWS Bedrock (Direct) • License: MIT • Latest: v1.0.0
+
 GTD Assistant for Obsidian. Converts selected text into Tasks‑compatible actions using AWS Bedrock.
 
 ## Installation
